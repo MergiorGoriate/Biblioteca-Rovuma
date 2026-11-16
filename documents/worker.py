@@ -76,6 +76,7 @@ def validate_docx(path):
 def validate_odt(path):
     mimetype = b"application/vnd.oasis.opendocument.text"
     href_key = "{http://www.w3.org/1999/xlink}href"
+    base_key = "{http://www.w3.org/XML/1998/namespace}base"
     office = "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}"
     text_link = "{urn:oasis:names:tc:opendocument:xmlns:text:1.0}a"
     blocked_elements = {"script", "event-listener", "object", "object-ole",
@@ -106,14 +107,15 @@ def validate_odt(path):
                 ):
                     raise Rejected("O ODT não contém um documento de texto válido.")
                 for element in root.iter():
-                    if element.tag.rsplit("}", 1)[-1] in blocked_elements:
+                    if element.tag.rsplit("}", 1)[-1] in blocked_elements or element.get(base_key):
                         raise Rejected("O ODT contém elementos activos, incorporados ou encriptados.")
                     href = element.get(href_key, "")
                     if not href or href.startswith("#"):
                         continue
-                    if element.tag == text_link and urlsplit(href).scheme.lower() in {"http", "https", "mailto"}:
+                    link = urlsplit(href)
+                    if element.tag == text_link and link.scheme.lower() in {"http", "https", "mailto"}:
                         continue
-                    if unquote(href).removeprefix("./") not in names:
+                    if link.scheme or link.netloc or unquote(href).removeprefix("./") not in names:
                         raise Rejected("O ODT tem dependências externas ou incompatíveis.")
     except (BadZipFile, ValueError, ParseError, DefusedXmlException, RuntimeError) as exc:
         raise Rejected("Estrutura ODT inválida.") from exc
