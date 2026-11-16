@@ -16,20 +16,12 @@ class User(AbstractUser):
     institutional_number = models.CharField(max_length=64, unique=True, null=True, blank=True)
     credential_until = models.DateField(null=True, blank=True)
     verified_email = models.EmailField(blank=True)
-    state = models.CharField(max_length=12, choices=State.choices, default=State.PENDING)
+    state = models.CharField(max_length=12, choices=State.choices, default=State.ACTIVE)
     identity_source = models.CharField(max_length=16, choices=Identity.choices, default=Identity.LOCAL)
     identity_subject = models.CharField(max_length=255, blank=True)
     session_version = models.PositiveIntegerField(default=0)
     activation_token_hash = models.CharField(max_length=64, blank=True)
     activation_expires = models.DateTimeField(null=True, blank=True)
-
-    @property
-    def is_active(self):
-        return self.state == self.State.ACTIVE and super().is_active
-
-    @is_active.setter
-    def is_active(self, value):
-        self._is_active = value
 
     class Meta:
         permissions = (
