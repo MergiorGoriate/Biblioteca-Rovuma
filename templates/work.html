@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}{{ work.title }} · Biblioteca Rovuma{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'catalogue' %}">← Catálogo</a>
+<article class="panel work-detail"><img loading="lazy" src="{% url 'cover' work.pk %}" width="200" height="270" alt=""><div>
+<p class="eyebrow">{{ work.get_kind_display }} · {{ work.language }}</p><h1>{{ work.title }}</h1>
+{% if work.subtitle %}<p class="lead">{{ work.subtitle }}</p>{% endif %}
+{% if work.authors.all %}<p class="muted">{{ work.authors.all|join:", " }}</p>{% endif %}
+{% if work.summary %}<div>{{ work.summary|linebreaks }}</div>{% endif %}
+{% if work.subjects.all or work.keywords %}<div class="tags">{% for subject in work.subjects.all %}<span>{{ subject }}</span>{% endfor %}{% if work.keywords %}<span>{{ work.keywords }}</span>{% endif %}</div>{% endif %}
+{% if work.terms %}<h2>Condições de utilização</h2>{{ work.terms|linebreaks }}{% endif %}
+{% if nav_editor %}<p><a href="{% url 'manage_work' work.pk %}">Gerir obra</a></p>{% endif %}</div>
+</article>
+<div class="two-col section">
+<section class="panel"><h2>Leitura digital</h2>
+{% for version in versions %}<div class="row"><div><strong>{{ version.document.edition.label }}</strong><div class="small muted">{{ version.get_access_mode_display }} · {{ version.pages }} páginas</div></div><a class="primary" href="{% url 'reader' version.pk %}">Ler</a></div>{% empty %}<p class="muted">Sem versão digital publicada.</p>{% endfor %}</section>
+<section class="panel"><h2>Exemplares físicos</h2>
+{% for copy in copies %}<div class="record"><strong>{{ copy.get_state_display }}</strong><p>{{ copy.location }}</p><small>{{ copy.edition.label }} · {{ copy.inventory }}</small></div>{% empty %}<p class="muted">Sem exemplares registados.</p>{% endfor %}<p class="small muted">O acervo físico continua em actualização.</p></section></div>
+{% if work.editions.all %}<section class="panel section"><h2>Edições e identificadores</h2>{% for edition in work.editions.all %}<div class="record"><strong>{{ edition.label }}</strong> {{ edition.publisher }} {{ edition.year|default_if_none:"" }}{% for id in edition.identifiers.all %}<div>{{ id.scheme }} <span class="break">{{ id.value }}</span></div>{% endfor %}</div>{% endfor %}</section>{% endif %}
+{% endblock %}

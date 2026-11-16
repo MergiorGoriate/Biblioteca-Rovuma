@@ -1,0 +1,2 @@
+{% extends "base.html" %}{% block content %}<div class="section-head"><h1>Localizações</h1><a class="primary" href="{% url 'new_location' 'localizacao' %}">Nova localização</a></div>
+<section class="panel">{% for location in locations %}<div class="row"><span>{{ location }}</span><a href="{% url 'edit_location' 'localizacao' location.pk %}">Editar</a></div>{% empty %}<p>Nenhuma localização registada.</p>{% endfor %}</section>{% endblock %}

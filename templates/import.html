@@ -1,0 +1,4 @@
+{% extends "base.html" %}{% block content %}<section class="panel"><h1>Rever importação</h1>
+<p>{{ batch.source }} · {{ batch.rows|length }} registos validados</p>
+<div class="table-scroll"><table><thead><tr><th>Número</th><th>Validade</th><th>Contacto validado</th></tr></thead><tbody>{% for row in batch.rows %}<tr><td>{{ row.number }}</td><td>{{ row.until }}</td><td>{{ row.email|default:"Sem contacto registado" }}</td></tr>{% endfor %}</tbody></table></div>
+{% if batch.confirmed %}<p>Lote já confirmado.</p>{% else %}<form method="post">{% csrf_token %}<button class="primary">Confirmar importação</button></form>{% endif %}</section>{% endblock %}

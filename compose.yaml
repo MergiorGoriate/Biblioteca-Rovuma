@@ -1,0 +1,119 @@
+name: biblioteca-rovuma
+
+x-app: &app
+  image: biblioteca-rovuma-web:${APP_TAG:-local}
+  build:
+    context: .
+    target: web
+  environment:
+    APP_ENV: ${APP_ENV:-production}
+    DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
+    DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
+    POSTGRES_DB: ${POSTGRES_DB}
+    POSTGRES_USER: ${POSTGRES_USER}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-1073741824}
+    DISK_RESERVE_BYTES: ${DISK_RESERVE_BYTES:-268435456}
+    EMAIL_HOST: ${EMAIL_HOST}
+    EMAIL_PORT: ${EMAIL_PORT:-587}
+    EMAIL_HOST_USER: ${EMAIL_HOST_USER}
+    EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
+    EMAIL_USE_TLS: ${EMAIL_USE_TLS:-1}
+    DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
+    POSTGRES_HOST: db
+    PRIVATE_ROOT: /data/private
+    SPOOL_ROOT: /data/spool
+  restart: unless-stopped
+  depends_on:
+    db:
+      condition: service_healthy
+
+services:
+  db:
+    image: postgres:17-bookworm
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_BOOTSTRAP_PASSWORD:?Defina a senha de inicialização PostgreSQL}
+      ROVUMA_DB_USER: ${POSTGRES_USER}
+      ROVUMA_DB_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - database:/var/lib/postgresql/data
+      - ./ops/init-db.sh:/docker-entrypoint-initdb.d/10-rovuma.sh:ro
+    networks: [backend]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  web:
+    <<: *app
+    command: ["sh", "-ec", "python manage.py collectstatic --noinput && exec gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 90 rovuma.wsgi:application"]
+    volumes:
+      - private:/data/private
+    networks: [backend, ingress]
+
+  dispatcher:
+    <<: *app
+    command: ["python", "manage.py", "dispatch_documents"]
+    volumes:
+      - private:/data/private
+      - spool:/data/spool
+    networks: [backend]
+
+  processor:
+    image: biblioteca-rovuma-processor:${APP_TAG:-local}
+    build:
+      context: .
+      target: processor
+    network_mode: none
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    cap_drop: [ALL]
+    pids_limit: 90
+    mem_limit: 2g
+    cpus: 1.5
+    tmpfs:
+      - /tmp:size=1400m,mode=1777
+    environment:
+      HOME: /tmp
+    volumes:
+      - spool:/data/spool
+      - signatures:/var/lib/clamav:ro
+    restart: unless-stopped
+
+  signatures:
+    image: clamav/clamav:stable_base
+    profiles: [maintenance]
+    entrypoint: ["freshclam"]
+    volumes:
+      - signatures:/var/lib/clamav
+
+  proxy:
+    image: caddy:2-alpine
+    environment:
+      BIBLIOTECA_HOST: ${BIBLIOTECA_HOST}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./ops/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [ingress]
+    restart: unless-stopped
+
+networks:
+  backend:
+    internal: true
+  ingress:
+
+volumes:
+  database:
+  private:
+  spool:
+  signatures:
+  caddy_data:
+  caddy_config:

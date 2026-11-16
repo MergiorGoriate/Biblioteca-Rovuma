@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block title %}{{ heading }} · Biblioteca Rovuma{% endblock %}
+{% block content %}
+<section class="panel form-panel"><h1>{{ heading }}</h1>
+{% if activation_link %}<div class="notice"><p>Entregue esta ligação ao estudante cuja identidade confirmou. Expira em 30 minutos e pode ser utilizada uma vez.</p><a class="break" href="{{ activation_link }}">{{ activation_link }}</a></div>{% endif %}
+<form method="post" enctype="multipart/form-data">{% csrf_token %}{{ form.as_p }}<button class="primary">{{ submit|default:"Confirmar" }}</button></form>
+</section>{% endblock %}

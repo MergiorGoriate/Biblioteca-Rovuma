@@ -1,0 +1,64 @@
+"""Executar com Playwright instalado e o servidor local de demonstração activo."""
+import os
+import re
+
+from playwright.sync_api import expect, sync_playwright
+
+
+base = os.getenv("ROVUMA_TEST_URL", "http://127.0.0.1:8000")
+executable = os.getenv("ROVUMA_CHROMIUM")
+args = ["--no-sandbox", "--disable-dev-shm-usage", "--single-process", "--no-zygote", "--disable-gpu"] if executable else []
+with sync_playwright() as playwright:
+    for width, height, mobile in [(1440, 900, False), (390, 844, True)]:
+        browser = playwright.chromium.launch(executable_path=executable, args=args)
+        context = browser.new_context(viewport={"width": width, "height": height}, is_mobile=mobile, has_touch=mobile)
+        page = context.new_page()
+        page.on("pageerror", lambda error: print(f"JavaScript: {error}", flush=True))
+        page.on("console", lambda entry: print(f"Navegador: {entry.text}", flush=True) if entry.type == "error" else None)
+        page.goto(base + "/entrar/")
+        page.locator("#id_username").fill("000042")
+        page.locator("#id_password").fill("Rovuma!Demo-42")
+        page.get_by_role("button", name="Entrar").click()
+        expect(page.get_by_role("heading", name="A sua biblioteca")).to_be_visible()
+        page.locator("#home-q").fill("investigação")
+        page.get_by_role("button", name="Pesquisar").click()
+        page.get_by_role("link", name=re.compile("Introdução à investigação")).click()
+        page.get_by_role("link", name="Ler", exact=True).click()
+        expect(page.locator("#reader-status")).to_have_text(re.compile(r"Página \d de 3"), timeout=12000)
+        page.locator("#page").fill("1")
+        page.locator("#page").press("Tab")
+        expect(page.locator("#reader-status")).to_have_text("Página 1 de 3")
+        page.get_by_role("button", name="Seguinte").click()
+        expect(page.locator("#reader-status")).to_have_text("Página 2 de 3")
+        assert page.locator("#reader").evaluate("(box) => box.scrollWidth <= box.clientWidth + 2")
+        assert page.locator("#page-canvas").evaluate("(canvas) => canvas.width > 100 && canvas.height > 100")
+        expect(page.locator("#page-text")).to_contain_text("Hipótese")
+        page.get_by_role("button", name="Ajustar largura").click()
+        expect(page.locator("#marker")).to_be_enabled()
+        page.locator("#pdf-query").fill("pergunta delimita")
+        with page.expect_response(lambda response: "/progresso/" in response.url and response.request.method == "POST") as saved:
+            page.get_by_role("button", name="Procurar texto").click()
+        assert saved.value.ok
+        expect(page.locator("#reader-status")).to_have_text("Texto encontrado na página 1.")
+        expect(page.locator("#marker")).to_be_enabled()
+        marked = saved.value.json()["marked"]
+        expect(page.locator("#marker")).to_have_attribute("aria-pressed", str(marked).lower())
+        if not marked:
+            page.locator("#marker").click()
+        expect(page.locator("#marker")).to_have_attribute("aria-pressed", "true")
+        page.get_by_role("link", name="Minhas leituras", exact=True).click()
+        expect(page.get_by_role("heading", name="Marcadores")).to_be_visible()
+        expect(page.get_by_text("Página 1", exact=True)).to_have_count(2)
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.get_by_role("button", name="Sair", exact=True).click()
+        page.locator("#id_username").fill("bibliotecario.demo")
+        page.locator("#id_password").fill("Acervo!Demo-42")
+        page.get_by_role("button", name="Entrar").click()
+        page.get_by_role("link", name="Gerir acervo").click()
+        expect(page.get_by_role("heading", name="Gestão do acervo")).to_be_visible()
+        page.get_by_role("link", name="Estudantes", exact=True).click()
+        expect(page.get_by_role("link", name="000042")).to_be_visible()
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        print(f"{width} × {height}: sessão, pesquisa, PDF, navegação, marcador e gestão passaram.", flush=True)
+        context.close()
+        browser.close()

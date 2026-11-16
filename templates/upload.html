@@ -1,0 +1,7 @@
+{% extends "base.html" %}{% load static %}{% block content %}<a class="back" href="{% url 'manage_work' edition.work_id %}">← {{ edition.work.title }}</a>
+<section class="panel form-panel"><h1>Carregar documento</h1><p class="muted">{{ edition.label }} · PDF ou DOCX · limite {{ limit|filesizeformat }}</p>
+<form id="upload" data-start="{% url 'start_upload' edition.pk %}" data-key="{{ user.pk }}.{{ edition.pk }}">{% csrf_token %}{{ form.as_p }}
+<p><label for="source">Ficheiro</label><input id="source" type="file" accept=".pdf,.docx" required></p>
+<button class="primary">Carregar ou retomar</button>
+</form><progress id="transfer" value="0" max="100" hidden aria-label="Progresso do carregamento"></progress><p id="upload-status" role="status"></p>
+</section>{% endblock %}{% block scripts %}<script src="{% static 'upload.js' %}" defer></script>{% endblock %}

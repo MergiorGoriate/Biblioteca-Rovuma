@@ -1,0 +1,28 @@
+{% load static %}<!doctype html>
+<html lang="pt-MZ">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}Biblioteca Rovuma{% endblock %}</title>
+<link rel="stylesheet" href="{% static 'style.css' %}">
+</head>
+<body>
+<a class="skip" href="#conteudo">Saltar para o conteúdo</a>
+<header class="site-header"><div class="wrap header-flex">
+<a href="{% url 'home' %}" class="brand"><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M5.5 7.5c4.5-1 7.5 0 10.5 2.5 3-2.5 6-3.5 10.5-2.5v16c-4.5-.8-7.5.2-10.5 2.5-3-2.3-6-3.3-10.5-2.5zM16 10v16M9 12l3 1m-3 3 3 1m8-4 3-1m-3 5 3-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Biblioteca Rovuma<small>Universidade Rovuma</small></span></a>
+{% if user.is_authenticated %}
+<nav aria-label="Navegação principal">
+{% if nav_student or nav_editor %}<a href="{% url 'catalogue' %}">Catálogo</a>{% endif %}
+{% if nav_student %}<a href="{% url 'library' %}">Minhas leituras</a><a href="{% url 'profile' %}">Perfil</a>{% endif %}
+{% if nav_editor %}<a href="{% url 'collection' %}">Acervo</a>{% endif %}
+{% if nav_credential or nav_correct %}<a href="{% url 'students' %}">Estudantes</a>{% endif %}
+{% if nav_audit %}<a href="{% url 'audit' %}">Auditoria</a>{% endif %}
+<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="plain">Sair</button></form>
+</nav>{% endif %}
+</div></header>
+<main id="conteudo" class="wrap main">
+{% for message in messages %}<div class="notice {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
+{% block content %}{% endblock %}
+</main>
+<footer class="site-footer"><div class="wrap footer-flex"><span>Biblioteca Rovuma</span><span>Universidade Rovuma · Moçambique</span></div></footer>
+{% block scripts %}{% endblock %}
+</body></html>

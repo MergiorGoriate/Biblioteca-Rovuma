@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Iniciar sessão · Biblioteca Rovuma{% endblock %}
+{% block content %}
+<div class="login-layout">
+<section class="login-hero">
+<p class="eyebrow">Universidade Rovuma</p><h1>Biblioteca Rovuma</h1>
+<p>Consulte documentos digitais e encontre os livros disponíveis para consulta nas instalações da biblioteca.</p>
+<div class="book-art" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+</section>
+<section class="panel login-panel"><h2>Iniciar sessão</h2><p class="muted">Estudantes entram com o número institucional.</p>
+<form method="post">{% csrf_token %}{{ form.as_p }}<input type="hidden" name="next" value="{{ next }}"><button class="primary">Entrar</button></form>
+<a href="{% url 'password_reset' %}">Esqueci-me da senha</a>
+<p class="small muted">Para a primeira activação, contacte o bibliotecário.</p>
+</section></div>
+{% endblock %}

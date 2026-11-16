@@ -1,0 +1,6 @@
+{% extends "base.html" %}{% block content %}<h1>Minhas leituras</h1>
+<div class="two-col"><section class="panel"><h2>Leituras recentes</h2>
+{% for item in recent %}<div class="record"><a href="{% url 'reader' item.version_id %}">{{ item.version.document.edition.work.title }}</a><p>Página {{ item.page }}</p></div>{% empty %}<p class="muted">Ainda não começou a ler uma obra.</p>{% endfor %}</section>
+<section class="panel"><h2>Marcadores</h2>
+{% for item in bookmarks %}<div class="record"><a href="{% url 'reader' item.version_id %}?pagina={{ item.page }}">{{ item.version.document.edition.work.title }}</a><p>Página {{ item.page }}</p></div>{% empty %}<p class="muted">Ainda não guardou marcadores.</p>{% endfor %}</section></div>
+{% endblock %}

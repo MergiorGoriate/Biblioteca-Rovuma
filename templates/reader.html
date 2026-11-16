@@ -1,0 +1,15 @@
+{% extends "base.html" %}{% load static %}{% block content %}
+<a class="back" href="{% url 'work' work.pk %}">← Dados da obra</a>
+<div class="section-head"><div><p class="eyebrow">{{ version.get_access_mode_display }}</p><h1>{{ work.title }}</h1></div>
+{% if version.access_mode == 'download' and version.state == 'published' %}<a class="primary" href="{% url 'download' version.pk %}">Descarregar original</a>{% endif %}</div>
+<section id="reader" class="reader" data-pdf="{% url 'pdf' version.pk %}" data-page="{{ page }}" data-update="{% if personal %}{% url 'reading_update' version.pk %}{% endif %}" data-assets="{% static 'vendor/' %}">
+<div class="toolbar">
+<button type="button" id="previous" class="secondary">Anterior</button><label class="page-control">Página <input id="page" type="number" min="1" max="{{ version.pages }}" value="{{ page }}"></label><span id="page-total">/ {{ version.pages }}</span><button type="button" id="next" class="secondary">Seguinte</button>
+<button type="button" id="zoom-out" class="secondary" aria-label="Reduzir zoom">−</button><button type="button" id="zoom-in" class="secondary" aria-label="Aumentar zoom">+</button><button type="button" id="fit" class="secondary">Ajustar largura</button>
+{% if personal %}<button type="button" id="marker" class="secondary" aria-pressed="false">Guardar marcador</button>{% endif %}
+</div>
+<form id="pdf-search" class="toolbar">{% csrf_token %}<label for="pdf-query" class="sr-only">Pesquisar no PDF</label><input id="pdf-query" type="search" required maxlength="120" placeholder="Pesquisar no PDF"><button class="secondary">Procurar texto</button></form>
+<p id="reader-status" class="reader-status" role="status">A abrir o documento…</p>
+<div class="canvas-wrap" id="canvas-wrap"><canvas id="page-canvas" aria-label="Página do documento"></canvas></div>
+<details class="transcript"><summary>Texto da página</summary><p id="page-text"></p></details>
+</section>{% endblock %}{% block scripts %}<script type="module" src="{% static 'reader.mjs' %}"></script>{% endblock %}
