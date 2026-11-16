@@ -18,6 +18,8 @@ Abra [Biblioteca Rovuma](http://127.0.0.1:8000). Em Windows use `.venv\Scripts\a
 
 As migrações criam a estrutura da base de dados. Para explorar dados fictícios numa instalação local, defina `DEMO_STUDENT_PASSWORD` e `DEMO_STAFF_PASSWORD` no ambiente, com palavras-passe escolhidas por si, e execute `python manage.py demo_rovuma`. Entre como `000042` ou `bibliotecario.demo`, respectivamente. O comando só funciona em desenvolvimento com SQLite. O manual descreve a criação e atribuição das contas de serviço individuais para outras instalações.
 
+Para uma instalação de uso real, aplique o [procedimento de instalação e primeiro convite](docs/operacoes.md#produção). A base de dados inicia sem documentos e contas de demonstração.
+
 O painel do bibliotecário fica em `/gestao/`. É necessário entrar com uma conta autorizada para ver os módulos atribuídos.
 
 Para analisar novos documentos num ambiente local com ficheiros de teste, execute em dois terminais adicionais `python manage.py dispatch_documents` e `python -m documents.worker --spool var/spool`. Instale ClamAV com assinaturas e LibreOffice Writer. Para um ensaio com documentos próprios e inofensivos, a opção explícita `--development-no-antivirus` permite executar o teste estrutural sem ClamAV. A configuração de produção usa o processador em contentor, sem essa opção.
@@ -28,7 +30,7 @@ Para executar os testes use `python manage.py test`. Uma instalação com Postgr
 
 - [Instalação, actualização e recuperação](docs/operacoes.md)
 - [Manual breve do bibliotecário](docs/bibliotecario.md)
-- [Diagrama de arquitectura](docs/arquitectura.svg)
+- [Arquitectura de referência e estado da instalação](docs/arquitectura.md)
 - [Modelo de dados](docs/modelo-de-dados.md)
 - [Validação efectuada e pendências](docs/validacao.md)
 

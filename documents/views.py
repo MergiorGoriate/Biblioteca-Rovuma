@@ -190,8 +190,10 @@ def download(request, pk):
     path = original(version.pk)
     if not path.is_file():
         raise Http404
-    return FileResponse(path.open("rb"), as_attachment=True, filename=version.original_name,
-                        content_type="application/octet-stream")
+    response = FileResponse(path.open("rb"), as_attachment=True, filename=version.original_name,
+                            content_type="application/octet-stream")
+    response["Cache-Control"] = "private, no-store"
+    return response
 
 
 @permission(EDITOR)
@@ -201,8 +203,8 @@ def editorial(request, pk):
     with transaction.atomic():
         unlocked = get_object_or_404(Version.objects.select_related("document__edition"), pk=pk)
         work = Work.objects.select_for_update().get(pk=unlocked.document.edition.work_id)
+        job = Job.objects.select_for_update().get(version_id=pk)
         version = Version.objects.select_for_update().get(pk=pk)
-        job = Job.objects.select_for_update().get(version=version)
         if action == "publish":
             if (version.state not in {Version.State.REVIEW, Version.State.ARCHIVED} or job.state != Job.State.DONE
                     or not version.pages or not version.sha256 or not version.authorization.strip()

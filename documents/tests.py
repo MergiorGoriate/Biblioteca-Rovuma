@@ -120,6 +120,7 @@ class LibraryTest(TestCase):
         self.version.save()
         response = self.client.get(self.url("download", self.version.pk))
         self.assertIn("attachment", response["Content-Disposition"])
+        self.assertIn("no-store", response["Cache-Control"])
         self.assertTrue(b"".join(response.streaming_content).startswith(b"%PDF-"))
 
     def test_failed_docx_cannot_publish(self):
@@ -252,7 +253,12 @@ class LibraryTest(TestCase):
     def test_physical_location_and_native_search(self):
         location = Location.objects.create(name="Unidade de teste", description="Sala N, Estante 3, Prateleira 2")
         Copy.objects.create(edition=self.edition, location=location, inventory="000-A")
+        Copy.objects.create(edition=self.edition, location=location, inventory="000-B")
+        Copy.objects.create(edition=self.edition, location=location, inventory="000-C", state=Copy.State.MAINTENANCE)
         self.enter()
+        detail = self.client.get(self.url("work", self.work.pk))
+        self.assertContains(detail, "2</strong> exemplares catalogados para consulta local.")
+        self.assertNotContains(detail, "000-C")
         self.assertContains(self.client.get(self.url("work", self.work.pk)), "Consulta local na biblioteca")
         self.assertContains(self.client.get(self.url("work", self.work.pk)), "Estante 3")
         self.assertContains(self.client.get(self.url("catalogue"), {"q": "Método", "formato": "ambos", "ano": "2026"}), self.work.title)

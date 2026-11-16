@@ -82,7 +82,9 @@ def catalogue(request):
 def detail(request, pk):
     work = get_object_or_404(visible(request.user), pk=pk)
     versions = Version.objects.filter(document__edition__work=work, state=Version.State.PUBLISHED).select_related("document__edition")
-    copies = Copy.objects.filter(edition__work=work, state=Copy.State.LOCAL).select_related("location", "edition")
+    copies = list(Copy.objects.filter(edition__work=work, state=Copy.State.LOCAL)
+                  .select_related("location", "edition")
+                  .order_by("location__name", "edition__label", "inventory"))
     return render(request, "work.html", {"work": work, "versions": versions, "copies": copies})
 
 

@@ -4,10 +4,24 @@
 
 1. Confirme o domínio, servidor, capacidade, espaço persistente, SMTP, destino externo de cópias e responsáveis. Instale Docker Engine e Docker Compose num ambiente compatível.
 2. Copie `.env.example` para `.env`, restrinja as permissões a `0600` e preencha os campos. Use um segredo Django de pelo menos 50 caracteres. Preencha senhas distintas para o utilizador da aplicação e para o administrador inicial de PostgreSQL. Os contentores da aplicação recebem apenas a senha da aplicação. Configure DNS e encaminhe as portas TCP 80 e 443 para o proxy. As listas de hosts contêm nomes, sem esquema.
-3. Execute `docker compose build` e `docker compose config --quiet`. Inicie a base com `docker compose up -d db`. Aplique as migrações com `docker compose run --rm web python manage.py migrate`.
-4. Obtenha assinaturas com `docker compose run --rm signatures --stdout`. Agende a renovação diária com o mesmo comando. Inicie a aplicação com `docker compose up -d web dispatcher processor proxy`. As assinaturas são lidas pelo processador através de volume montado.
-5. Crie contas individuais usando `docker compose exec web python manage.py create_staff NOME`. Atribua grupos com `docker compose exec web python manage.py set_role CONTA bibliotecario --actor RESPONSAVEL --reason 'Referência da decisão'`. Estão disponíveis os grupos `bibliotecario`, `tecnico` e `correccao`. A atribuição acumulada é explícita e auditada. O responsável pelo servidor pode aceder ao PostgreSQL, aos volumes e aos segredos, independentemente dos grupos da interface.
-6. Em homologação, valide aplicação, TLS, SMTP, instalação de assinaturas, conversão de um DOCX, permissões, PDF parcial, renovação de sessões e restauro. Execute `docker compose exec web python manage.py check --deploy`.
+3. Execute `docker compose config --quiet` e `docker compose build`. Obtenha as assinaturas com `docker compose run --rm signatures --stdout`. Execute `docker compose run --rm --no-deps processor python -m ops.verify_processor` para verificar a análise e a conversão de um DOCX gerado na hora. Inicie com `docker compose up -d db migrate web dispatcher processor proxy`. O serviço `migrate` termina após aplicar as migrações. O servidor Web e o despachante aguardam pela sua conclusão.
+4. Crie a primeira conta individual por convite, depois de validada a designação. Substitua os campos seguintes pelos dados da instalação. Entregue a ligação apenas pelo canal confirmado do destinatário. O convite expira em 24 horas e permite ao destinatário escolher a palavra-passe. Acrescente `--reemitir` apenas para substituir um convite ainda pendente.
+5. Em homologação, valide HTTPS, o envio de correio, as assinaturas, a conversão real de um DOCX, as permissões, a leitura parcial de PDF e o restauro. Execute `docker compose exec web python manage.py check --deploy`.
+
+```sh
+docker compose exec web python manage.py invite_staff NOME bibliotecario \
+  --url-base https://DOMINIO_CONFIRMADO \
+  --responsavel 'Nome de quem aprovou' \
+  --referencia 'Referência da designação' \
+  --email-validado ENDERECO_VALIDADO
+```
+
+A configuração aplica HSTS ao domínio da biblioteca. Os avisos W005 e W021 referem-se à extensão aos subdomínios e à adesão à lista de pré-carregamento dos navegadores. Confirme as implicações para o domínio com o seu responsável antes de activar essas opções.
+
+O endereço validado é opcional e permite recuperação da palavra-passe depois de configurado o correio. O convite inicial pode ser emitido antes de configurar o correio. Entregue-o directamente ao destinatário por um canal reservado, confirme que o utilizador consegue iniciar sessão e evite guardar a ligação em tickets, repositórios ou registos partilhados. Use o painel em `/gestao/` e registe o acervo e as listas de estudantes autorizadas. Para contas já criadas, use `set_role CONTA bibliotecario --actor RESPONSAVEL --reason 'Referência da decisão'`. Estão disponíveis as funções `bibliotecario`, `tecnico` e `correccao`. A atribuição fica registada na auditoria, e o acesso de quem administra o servidor aos volumes, ao PostgreSQL e aos segredos decorre das permissões da infra-estrutura.
+
+O Compose aceita SMTP ou Resend. Para SMTP, configure `EMAIL_HOST`, a autenticação quando exigida e `DEFAULT_FROM_EMAIL`. Para Resend, configure `EMAIL_BACKEND=rovuma.resend_backend.ResendEmailBackend`, `RESEND_API_KEY` e um remetente verificado em `DEFAULT_FROM_EMAIL`. Apenas o serviço Web recebe as variáveis de correio.
+
 
 O Caddy permite até 6 MB por pedido. O JavaScript envia partes de 1 MiB e a aplicação valida tamanho e posição no servidor. O limite total é configurado em `UPLOAD_MAX_BYTES` e deve respeitar a capacidade dos volumes, o motor antivírus e o espaço temporário. O predefinido é 1 GiB. Um original em análise ocupa espaço no acervo privado e na fila. A conversão Word requer ainda área temporária e espaço para o PDF. Dimensione o servidor pela maior carga simultânea esperada. O worker tem rede desactivada, raiz só de leitura, limite de memória, CPU e processos, e volumes restritos. O serviço de despacho mantém a fila em PostgreSQL. O motor de análise recusa documentos quando o antivírus falha ou o formato é inválido.
 
@@ -34,10 +48,11 @@ O script `ops/backup.sh` usa Restic para deduplicar e encriptar os dados num rep
 Restaure primeiro num ambiente isolado e noutra configuração Compose, com volumes vazios. Identifique o snapshot através de `restic snapshots --tag biblioteca-rovuma` e extraia com `restic restore ID --target ./restore`. O alvo deve conter `rovuma.dump` e `private/`, conforme indicado por `restic ls ID`. Mantenha o processo Web e o despachante parados durante a operação.
 
 ```sh
-docker compose up -d db
+docker compose up -d --wait db
 docker compose exec -T db sh -ec 'pg_restore --clean --if-exists --exit-on-error --no-owner -U "$ROVUMA_DB_USER" -d "$POSTGRES_DB"' < restore/rovuma.dump
 tar -C restore/private -cf - . | docker compose run --rm --no-deps -T web tar -C /data/private -xf -
-docker compose run --rm web python manage.py requeue_restored_documents
+docker compose run --rm --no-deps web python manage.py migrate --noinput
+docker compose run --rm --no-deps web python manage.py requeue_restored_documents
 docker compose up -d web dispatcher processor proxy
 ```
 
