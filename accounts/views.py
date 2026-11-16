@@ -62,21 +62,22 @@ def profile(request):
 def activate(request, token):
     digest = hashlib.sha256(token.encode()).hexdigest()
     user = get_object_or_404(User, activation_token_hash=digest,
-                             activation_expires__gt=timezone.now(), state=User.State.PENDING)
+                             activation_expires__gt=timezone.now(), is_active=False)
     class ActivationForm(forms.Form):
-        password1 = forms.CharField(widget=forms.PasswordInput)
-        password2 = forms.CharField(widget=forms.PasswordInput)
+        new_password1 = forms.CharField(widget=forms.PasswordInput)
+        new_password2 = forms.CharField(widget=forms.PasswordInput)
         def clean(self):
             data = super().clean()
-            if data.get("password1") != data.get("password2"):
+            if data.get("new_password1") != data.get("new_password2"):
                 raise forms.ValidationError("As senhas não coincidem.")
             return data
     form = ActivationForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
         from django.contrib.auth.password_validation import validate_password
-        validate_password(form.cleaned_data["password1"], user)
+        validate_password(form.cleaned_data["new_password1"], user)
         user.set_password(form.cleaned_data["password1"])
         user.state = User.State.ACTIVE
+        user.is_active = True
         user.activation_token_hash = ""
         user.activation_expires = None
         user.session_version += 1
