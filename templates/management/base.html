@@ -5,7 +5,7 @@
 {% endblock %}
 {% block body_class %}management{% endblock %}
 {% block header %}
-<a class="brand" href="{% url 'management' %}"><span>Biblioteca Rovuma</span></a>
+<a class="brand" href="{% url 'management' %}">{% include 'brand_icon.html' %}<span>Biblioteca Rovuma</span></a>
 {% if nav_editor %}
 <form id="admin-search" class="management-search" action="{% url 'collection' %}" method="get" role="search" aria-label="Pesquisar no acervo">
   <label class="sr-only" for="admin-query">Pesquisar por título</label>

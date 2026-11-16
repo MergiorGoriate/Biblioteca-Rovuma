@@ -6,7 +6,7 @@
 {% endblock %}
 {% block body_class %}portal reader-portal{% endblock %}
 {% block header %}
-<a class="brand" href="{% url 'portal' %}"><span>Biblioteca Rovuma</span></a>
+<a class="brand" href="{% url 'portal' %}">{% include 'brand_icon.html' %}<span>Biblioteca Rovuma</span></a>
 {% if nav_student or nav_editor %}
 <form id="portal-search" class="management-search" action="{% url 'catalogue' %}" method="get" role="search" aria-label="Pesquisar no catálogo">
   <label for="home-q" class="sr-only">Pesquisar obras</label>

@@ -177,8 +177,7 @@ html:has(body.management) { scroll-padding-block-start: 112px; }
   line-height: 1.25;
   text-decoration: none;
 }
-.management-mark .brand-icon { color: var(--ink); background: transparent; width: 32px; height: 32px; }
-.management-mark .brand-icon svg { width: 30px; }
+[data-management-theme="dark"] :is(.management, .reader-portal) .brand-icon { background: #f3f6fb; }
 .management-create { background: var(--admin-accent); color: var(--admin-accent-ink); }
 .management-create:hover { background: var(--admin-accent-hover); }
 .management-navigation { display: grid; gap: 7px; }
@@ -465,6 +464,9 @@ html:has(body.management) { scroll-padding-block-start: 112px; }
     padding: 0 var(--admin-gap) var(--admin-gap);
   }
   :is(.management, .reader-portal) .header-flex { min-height: auto; gap: 8px; }
+  :is(.management, .reader-portal) .site-header .brand { gap: 6px; }
+  :is(.management, .reader-portal) .site-header .brand-icon { width: 29px; height: 30px; }
+  :is(.management, .reader-portal) .site-header .brand-icon img { width: 20px; height: 25px; }
   .management-search { order: 1; flex-basis: 100%; }
   .management-sidebar { margin-block-end: var(--admin-gap); }
   .management-rail { margin-top: 8px; }
