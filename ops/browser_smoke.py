@@ -249,7 +249,8 @@ with sync_playwright() as playwright:
             menu.click()
         navigation.get_by_role("link", name="Obras e edições").click()
         expect(page.get_by_role("heading", name="Gestão do acervo")).to_be_visible()
-        expect(page.get_by_text("5 obras", exact=True)).to_be_visible()
+        # The desktop pass also uploads a draft to the shared demo database.
+        expect(page.get_by_text(f"{6 if mobile else 5} obras", exact=True)).to_be_visible()
         expect(page.locator("body")).to_have_css("color-scheme", "light")
         page.get_by_role("button", name="Activar modo escuro").press("Enter")
         expect(page.locator("body")).to_have_css("color-scheme", "dark")
@@ -334,7 +335,8 @@ with sync_playwright() as playwright:
         navigation.get_by_role("link", name="Obras e edições").click()
         page.get_by_role("link", name="Carregar nova obra").click()
         expect(page.get_by_role("heading", name="Registar obra digital")).to_be_visible()
-        page.locator("#id_title").fill("Guia de carregamento")
+        upload_title = f"Guia de carregamento ({width})"
+        page.locator("#id_title").fill(upload_title)
         page.locator("#id_language").fill("Português")
         page.get_by_role("button", name="Continuar para o carregamento").click()
         expect(page.get_by_role("heading", name="Carregar documento")).to_be_visible()
@@ -343,7 +345,7 @@ with sync_playwright() as playwright:
         source.set_input_files({"name": "guia.txt", "mimeType": "text/plain", "buffer": "Ensaio de leitura em português.\n".encode()})
         page.get_by_label("Licença ou referência da autorização").fill("Documento de teste elaborado para este ensaio.")
         page.get_by_role("button", name="Carregar ou retomar").click()
-        expect(page.get_by_role("heading", name="Guia de carregamento")).to_be_visible()
+        expect(page.get_by_role("heading", name=upload_title)).to_be_visible()
         expect(page.get_by_text("Ficheiro recebido. Aguarda análise na fila de documentos.")).to_be_visible()
         expect(page.get_by_role("heading", name="guia.txt")).to_be_visible()
         print(f"{width} × {height}: entrada do portal, PDF, marcador, entrada administrativa, alternância e persistência do tema, barra lateral, filtros do acervo, inventário e fila validados.", flush=True)
