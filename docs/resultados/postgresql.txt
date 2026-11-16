@@ -1,10 +1,10 @@
 postgres (PostgreSQL) 16.2
 Creating test database for alias 'default'...
-.......................
+.........................
 ----------------------------------------------------------------------
-Ran 23 tests in 5.567s
+Ran 25 tests in 2.491s
 
 OK
 Destroying test database for alias 'default'...
-Found 23 test(s).
+Found 25 test(s).
 System check identified no issues (0 silenced).

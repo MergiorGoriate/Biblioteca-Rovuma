@@ -12,6 +12,7 @@ from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm, Set
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import IntegrityError, transaction
+from django.db.models import BooleanField, Case, Q, Value, When
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -128,10 +129,28 @@ def activate(request, token):
 
 @require(lambda user: has(user, "accounts.manage_credential") or has(user, "accounts.correct_number"))
 def students(request):
-    q = request.GET.get("q", "").strip()
+    q = request.GET.get("q", "").strip()[:64]
+    state = request.GET.get("estado", "")
     qs = User.objects.filter(institutional_number__isnull=False)
-    if q: qs = qs.filter(institutional_number__icontains=q)
-    return render(request, "students.html", {"page": Paginator(qs.order_by("username"), 30).get_page(request.GET.get("page")), "q": q})
+    if q:
+        qs = qs.filter(institutional_number__icontains=q)
+    active = Q(state=User.State.ACTIVE, is_active=True)
+    valid = Q(credential_until__gte=timezone.localdate())
+    if state == "active":
+        qs = qs.filter(active & valid)
+    elif state == "expired":
+        qs = qs.filter(active & ~valid)
+    elif state in (User.State.PENDING, User.State.SUSPENDED):
+        qs = qs.filter(state=state)
+    else:
+        state = ""
+    states = (("active", "Credenciamento válido"), ("pending", "Pendentes de activação"),
+              ("expired", "Sem credenciamento válido"), ("suspended", "Suspensas"))
+    qs = qs.annotate(has_current_credential=Case(When(active & valid, then=Value(True)),
+                                                default=Value(False), output_field=BooleanField()))
+    page = Paginator(qs.order_by("username"), 30).get_page(request.GET.get("page"))
+    return render(request, "students.html", {"page": page, "q": q, "state": state, "states": states})
+
 
 
 @permission("accounts.manage_credential")

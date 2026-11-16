@@ -14,7 +14,7 @@
 {% if nav_student or nav_editor %}<a href="{% url 'catalogue' %}">Catálogo</a>{% endif %}
 {% if nav_student %}<a href="{% url 'library' %}">Minhas leituras</a><a href="{% url 'profile' %}">Perfil</a>{% endif %}
 {% if nav_editor %}<a href="{% url 'collection' %}">Acervo</a>{% endif %}
-{% if nav_editor or nav_credential or nav_correct or nav_audit %}<a href="{% url "management" %}">Gestão</a>{% endif %}
+{% if nav_editor or nav_credential or nav_correct or nav_audit %}<a href="{% url "management" %}"{% if request.resolver_match.url_name == "management" %} aria-current="page"{% endif %}>Gestão</a>{% endif %}
 {% if nav_credential or nav_correct %}<a href="{% url 'students' %}">Estudantes</a>{% endif %}
 {% if nav_audit %}<a href="{% url 'audit' %}">Auditoria</a>{% endif %}
 <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="plain">Sair</button></form>

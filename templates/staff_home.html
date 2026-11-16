@@ -1,8 +1,7 @@
-{% extends "base.html" %}{% block content %}<div class="hero"><p class="eyebrow">Universidade Rovuma</p><h1>Área de trabalho</h1><p>Sessão de {{ user.username }}</p></div>
-<div class="grid section">
-{% if nav_editor %}<article class="panel"><h2>Acervo</h2><p>Gerir obras, edições, documentos e exemplares.</p><a href="{% url 'collection' %}">Gerir acervo</a></article>{% endif %}
-{% if nav_credential %}<article class="panel"><h2>Credenciamento</h2><p>Validar importações e gerir o acesso dos estudantes.</p><a href="{% url 'students' %}">Gerir estudantes</a></article>{% endif %}
-{% if nav_correct and not nav_credential %}<article class="panel"><h2>Número institucional</h2><a href="{% url 'students' %}">Corrigir números</a></article>{% endif %}
-{% if nav_audit %}<article class="panel"><h2>Auditoria</h2><p>Consultar acções registadas nas áreas atribuídas.</p><a href="{% url 'audit' %}">Consultar auditoria</a></article>{% endif %}
-{% if not nav_editor and not nav_credential and not nav_audit and not nav_correct %}<article class="panel"><h2>Acesso ao catálogo</h2><p>O acesso depende de credenciamento válido. Contacte a biblioteca se a sua situação foi actualizada pela universidade.</p></article>{% endif %}
-</div>{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+  <h1>Acesso ao catálogo</h1>
+  <p>O acesso depende de credenciamento válido. Contacte a biblioteca se a sua situação foi actualizada pela universidade.</p>
+</section>
+{% endblock %}

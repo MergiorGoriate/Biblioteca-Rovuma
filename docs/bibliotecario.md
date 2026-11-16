@@ -1,6 +1,6 @@
 # Manual breve do bibliotecário
 
-Entre com a sua conta individual e abra **Gestão**. Em **Acervo**, crie a obra e uma edição. Registe autores e assuntos em **Localizações, autores e assuntos** e seleccione-os na ficha da obra. Pode carregar uma capa em JPEG, PNG ou WebP, até 5 MiB. Acrescente identificadores bibliográficos quando disponíveis.
+Entre com a sua conta individual e abra **Gestão**. O painel apresenta contagens por estado e liga directamente às listas filtradas. Em **Documentos → Abrir fila**, procure por obra ou ficheiro, filtre por processamento, revisão ou falha e seleccione **Gerir documento** para abrir a versão correspondente. Em **Acervo**, crie a obra e uma edição. Registe autores e assuntos em **Localizações, autores e assuntos** e seleccione-os na ficha da obra. Pode carregar uma capa em JPEG, PNG ou WebP, até 5 MiB. Acrescente identificadores bibliográficos quando disponíveis.
 
 Para livros físicos, crie primeiro a localização em **Acervo → Localizações**. Na edição, escolha **Novo exemplar**, registe o inventário e seleccione a situação administrativa. Publique a obra. A ficha apresenta a localização e a situação registada para consulta local.
 

@@ -16,6 +16,7 @@ from django.views.decorators.http import require_POST
 from accounts.access import EDITOR, has, permission, require, student
 from audit.models import record
 from documents.models import Version
+from management.views import can_manage
 from reading.models import Bookmark, Progress
 from .models import Author, Copy, Edition, Identifier, Location, Subject, Work
 
@@ -40,16 +41,11 @@ def available_readings(model, user):
 @require(lambda user: user.is_authenticated)
 def home(request):
     if not student(request.user):
+        if can_manage(request.user):
+            return redirect("management")
         return render(request, "staff_home.html")
     recent = available_readings(Progress, request.user).order_by("-updated")[:6]
     return render(request, "home.html", {"recent": recent})
-
-
-@require(lambda user: any(has(user, code) for code in (
-    EDITOR, "accounts.manage_credential", "accounts.correct_number", "audit.view_event"
-)))
-def management(request):
-    return render(request, "staff_home.html")
 
 
 @require(allowed)
@@ -117,11 +113,16 @@ def library(request):
 
 @permission(EDITOR)
 def collection(request):
-    q = request.GET.get("q", "").strip()
+    q = request.GET.get("q", "").strip()[:150]
+    state = request.GET.get("estado", "")
     works = Work.objects.all()
-    if q: works = works.filter(title__icontains=q)
-    page = Paginator(works.order_by("-modified"), 30).get_page(request.GET.get("page"))
-    return render(request, "collection.html", {"page": page, "q": q})
+    if q:
+        works = works.filter(title__icontains=q)
+    if state in Work.State.values:
+        works = works.filter(state=state)
+    page = Paginator(works.order_by("-modified", "-pk"), 30).get_page(request.GET.get("page"))
+    return render(request, "collection.html", {"page": page, "q": q, "state": state, "states": Work.State.choices})
+
 
 
 class WorkForm(forms.ModelForm):

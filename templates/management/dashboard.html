@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Painel administrativo · Biblioteca Rovuma{% endblock %}
+{% block content %}
+<header class="dashboard-heading">
+  <h1>Painel administrativo</h1>
+  <div class="actions">
+    {% if nav_editor %}<a class="primary" href="{% url 'new_work' %}">Nova obra</a>{% endif %}
+    {% if nav_credential %}<a class="secondary" href="{% url 'imports' %}">Importar estudantes</a>{% endif %}
+    {% if user.identity_source == "local" %}<a class="plain" href="{% url 'password_change' %}">Alterar palavra-passe</a>{% endif %}
+  </div>
+</header>
+
+<div class="dashboard-layout">
+  {% if nav_editor %}
+  <section class="panel dashboard-panel">
+    <div class="section-head"><h2>Acervo</h2><a href="{% url 'collection' %}">Gerir acervo</a></div>
+    <div class="dashboard-stats">
+      <a href="{% url 'collection' %}?estado=published"><strong>{{ works.published }}</strong><span>Obras publicadas</span></a>
+      <a href="{% url 'collection' %}?estado=draft"><strong>{{ works.draft }}</strong><span>Rascunhos</span></a>
+      <div><strong>{{ local_copies }}</strong><span>Exemplares para consulta local</span></div>
+    </div>
+    <h3>Obras actualizadas recentemente</h3>
+    <ul class="dashboard-list">
+      {% for work in recent_works %}
+      <li><a href="{% url 'manage_work' work.pk %}">{{ work.title }}</a><span class="tag">{{ work.get_state_display }}</span></li>
+      {% empty %}<li class="muted">O acervo ainda não tem obras registadas.</li>{% endfor %}
+    </ul>
+    <a class="dashboard-footer" href="{% url 'locations' %}">Gerir localizações, autores e assuntos</a>
+  </section>
+
+  <section class="panel dashboard-panel">
+    <div class="section-head"><h2>Documentos</h2><a href="{% url 'document_queue' %}">Abrir fila</a></div>
+    <div class="dashboard-stats">
+      <a href="{% url 'document_queue' %}?estado=revisao"><strong>{{ documents.revisao }}</strong><span>Pendentes de revisão</span></a>
+      <a href="{% url 'document_queue' %}?estado=processamento"><strong>{{ documents.processamento }}</strong><span>Em processamento</span></a>
+      <a href="{% url 'document_queue' %}?estado=falhas"><strong>{{ documents.falhas }}</strong><span>Falhas de processamento</span></a>
+    </div>
+  </section>
+  {% endif %}
+
+  {% if nav_credential or nav_correct %}
+  <section class="panel dashboard-panel">
+    <div class="section-head"><h2>Estudantes</h2>
+    <a href="{% url 'students' %}">{% if nav_credential %}Gerir estudantes{% else %}Corrigir números{% endif %}</a></div>
+    {% if nav_credential %}
+    <div class="dashboard-stats">
+      <a href="{% url 'students' %}?estado=active"><strong>{{ students.active }}</strong><span>Credenciamento válido</span></a>
+      <a href="{% url 'students' %}?estado=pending"><strong>{{ students.pending }}</strong><span>Pendentes de activação</span></a>
+      <a href="{% url 'students' %}?estado=expired"><strong>{{ students.expired }}</strong><span>Sem credenciamento válido</span></a>
+      <a href="{% url 'students' %}?estado=suspended"><strong>{{ students.suspended }}</strong><span>Contas suspensas</span></a>
+    </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if nav_audit %}
+  <section class="panel dashboard-panel">
+    <div class="section-head"><h2>Auditoria recente</h2><a href="{% url 'audit' %}">Consultar auditoria</a></div>
+    <ul class="dashboard-list">
+      {% for event in recent_events %}
+      <li><span>{{ event.action }}</span><time class="small muted" datetime="{{ event.created|date:'c' }}">{{ event.created|date:"d/m/Y H:i" }}</time></li>
+      {% empty %}<li class="muted">Sem acções nas áreas atribuídas.</li>{% endfor %}
+    </ul>
+  </section>
+  {% endif %}
+</div>
+{% endblock %}

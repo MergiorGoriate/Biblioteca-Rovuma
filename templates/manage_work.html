@@ -15,7 +15,7 @@
 </div>{% empty %}<p class="muted">Crie uma edição para associar documentos ou exemplares.</p>{% endfor %}
 </section>
 <section class="panel section"><h2>Histórico de documentos</h2>
-{% for version in versions %}<article class="record"><h3>{{ version.original_name }}</h3>
+{% for version in versions %}<article class="record" id="documento-{{ version.pk }}"><h3>{{ version.original_name }}</h3>
 <p>{{ version.document.edition.label }} · {{ version.get_state_display }} · {{ version.get_access_mode_display }}</p>
 <p class="small">Análise {{ version.job.get_state_display|lower }} · {{ version.created|date:"d/m/Y H:i" }}</p>
 <p class="small break">Autorização registada — {{ version.authorization }}</p>

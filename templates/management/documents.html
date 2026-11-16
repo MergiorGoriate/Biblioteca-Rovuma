@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}Fila de documentos · Biblioteca Rovuma{% endblock %}
+{% block content %}
+<a class="back" href="{% url 'management' %}">← Painel administrativo</a>
+<h1>Fila de documentos</h1>
+<section class="panel" aria-label="Documentos para processamento ou revisão">
+  <form class="dashboard-filter" method="get">
+    <label>Obra ou ficheiro<input name="q" value="{{ q }}" maxlength="150"></label>
+    <label>Estado<select name="estado"><option value="">Todos</option>
+      {% for value, label in labels.items %}<option value="{{ value }}"{% if state == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></label>
+    <button class="secondary">Filtrar</button>
+  </form>
+  {% for version in page %}
+  <article class="row">
+    <div class="break">
+      <h2 class="queue-heading">{{ version.document.edition.work.title }}</h2>
+      <p class="small muted">{{ version.original_name }} · {{ version.document.edition.label }}</p>
+      {% if version.job.state == "error" %}<p class="notice error">{{ version.job.error }}</p>{% endif %}
+      <span class="tag">{% if version.state == "review" and version.job.state == "done" %}{{ version.get_state_display }}{% else %}{{ version.job.get_state_display }}{% endif %}</span>
+    </div>
+    <a class="secondary" href="{% url 'manage_work' version.document.edition.work_id %}#documento-{{ version.pk }}">Gerir documento</a>
+  </article>
+  {% empty %}<p class="muted">Nenhum documento corresponde aos filtros.</p>{% endfor %}
+  {% include "pagination.html" %}
+</section>
+{% endblock %}
