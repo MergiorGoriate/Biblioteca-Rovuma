@@ -1,6 +1,6 @@
 const button = document.getElementById("management-menu-toggle");
 const navigation = document.getElementById("management-navigation");
-const narrowScreen = window.matchMedia("(max-width: 760px)");
+const narrowScreen = window.matchMedia("(max-width: 860px)");
 
 function setMenu(expanded) {
   navigation.hidden = !expanded;

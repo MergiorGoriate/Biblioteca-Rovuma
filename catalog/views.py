@@ -125,6 +125,8 @@ def collection(request):
         works = works.filter(title__icontains=q)
     if state in Work.State.values:
         works = works.filter(state=state)
+    else:
+        state = ""
     page = Paginator(works.order_by("-modified", "-pk"), 30).get_page(request.GET.get("page"))
     return render(request, "collection.html", {"page": page, "q": q, "state": state, "states": Work.State.choices})
 

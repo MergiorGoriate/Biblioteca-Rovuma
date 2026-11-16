@@ -1,40 +1,41 @@
 {% extends "base.html" %}{% load static %}
+{% block styles %}<link rel="stylesheet" href="{% static 'management.css' %}">{% endblock %}
 {% block body_class %}management{% endblock %}
 {% block header %}
 <a class="brand" href="{% url 'management' %}">{% include 'brand_icon.html' %}<span>Biblioteca Rovuma<small>Painel administrativo</small></span></a>
 <div class="management-account">
-  {% if nav_student or nav_editor %}<a class="secondary" href="{% url 'portal' %}">Abrir portal</a>{% endif %}
+  {% if nav_student or nav_editor %}<a class="secondary" href="{% url 'portal' %}">{% include "management/icon.html" with icon="external" %}Abrir portal</a>{% endif %}
   {% include 'logout_form.html' %}
 </div>
 {% endblock %}
 {% block layout_start %}
 <div class="wrap management-shell">
   <aside class="management-sidebar">
-    <button type="button" id="management-menu-toggle" class="secondary" aria-controls="management-navigation" aria-expanded="true" hidden>Menu administrativo</button>
+    <button type="button" id="management-menu-toggle" class="secondary" aria-controls="management-navigation" aria-expanded="true" hidden>{% include "management/icon.html" with icon="menu" %}<span>Menu administrativo</span>{% include "management/icon.html" with icon="chevron" %}</button>
     {% with route=request.resolver_match.url_name kind=request.resolver_match.kwargs.kind %}
     <nav id="management-navigation" class="management-navigation" aria-label="Navegação administrativa">
-      <a href="{% url 'management' %}"{% if route == 'management' %} aria-current="page"{% endif %}>Visão geral</a>
+      <a href="{% url 'management' %}"{% if route == 'management' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="home" %}<span>Visão geral</span></a>
       {% if nav_editor %}
       <div class="management-menu-group">
         <p>Acervo e documentos</p>
-        <a href="{% url 'collection' %}"{% if route == 'collection' or route == 'manage_work' or route == 'edit_work' or route == 'new_work' or kind == 'edicao' or kind == 'identificador' %} aria-current="page"{% endif %}>Obras e edições</a>
-        <a href="{% url 'document_queue' %}"{% if route == 'document_queue' or route == 'reader_preview' or route == 'upload' %} aria-current="page"{% endif %}>Fila de documentos</a>
-        <a href="{% url 'inventory' %}"{% if route == 'inventory' or kind == 'exemplar' %} aria-current="page"{% endif %}>Exemplares físicos</a>
-        <a href="{% url 'locations' %}"{% if route == 'locations' or route == 'new_location' or route == 'edit_location' %} aria-current="page"{% endif %}>Localizações, autores e assuntos</a>
+        <a href="{% url 'collection' %}"{% if route == 'collection' or route == 'manage_work' or route == 'edit_work' or route == 'new_work' or kind == 'edicao' or kind == 'identificador' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="books" %}<span>Obras e edições</span></a>
+        <a href="{% url 'document_queue' %}"{% if route == 'document_queue' or route == 'reader_preview' or route == 'upload' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="file" %}<span>Fila de documentos</span></a>
+        <a href="{% url 'inventory' %}"{% if route == 'inventory' or kind == 'exemplar' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="box" %}<span>Exemplares físicos</span></a>
+        <a href="{% url 'locations' %}"{% if route == 'locations' or route == 'new_location' or route == 'edit_location' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="tags" %}<span>Localizações, autores e assuntos</span></a>
       </div>
       {% endif %}
       {% if nav_credential or nav_correct %}
       <div class="management-menu-group">
         <p>Contas e credenciamento</p>
-        <a href="{% url 'students' %}"{% if route == 'students' or route == 'credential' or route == 'correct' %} aria-current="page"{% endif %}>Estudantes</a>
-        {% if nav_credential %}<a href="{% url 'imports' %}"{% if route == 'imports' or route == 'import_preview' %} aria-current="page"{% endif %}>Importar estudantes</a>{% endif %}
+        <a href="{% url 'students' %}"{% if route == 'students' or route == 'credential' or route == 'correct' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="people" %}<span>Estudantes</span></a>
+        {% if nav_credential %}<a href="{% url 'imports' %}"{% if route == 'imports' or route == 'import_preview' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="upload" %}<span>Importar estudantes</span></a>{% endif %}
       </div>
       {% endif %}
       {% if nav_audit or user.identity_source == "local" %}
       <div class="management-menu-group">
         <p>Registos e conta</p>
-        {% if nav_audit %}<a href="{% url 'audit' %}"{% if route == 'audit' %} aria-current="page"{% endif %}>Auditoria</a>{% endif %}
-        {% if user.identity_source == "local" %}<a href="{% url 'management_password' %}"{% if route == 'management_password' %} aria-current="page"{% endif %}>Alterar palavra-passe</a>{% endif %}
+        {% if nav_audit %}<a href="{% url 'audit' %}"{% if route == 'audit' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="history" %}<span>Auditoria</span></a>{% endif %}
+        {% if user.identity_source == "local" %}<a href="{% url 'management_password' %}"{% if route == 'management_password' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="key" %}<span>Alterar palavra-passe</span></a>{% endif %}
       </div>
       {% endif %}
     </nav>
