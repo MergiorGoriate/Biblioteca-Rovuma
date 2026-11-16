@@ -8,6 +8,12 @@ from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
 from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordResetView
+from django.contrib.auth.forms import PasswordResetForm
+from django.core.mail import send_mail
+from django.conf import settings
+from django.urls import reverse
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.shortcuts import get_object_or_404, redirect, render
@@ -42,11 +48,18 @@ class ResetToken(PasswordResetTokenGenerator):
         return super()._make_hash_value(user, timestamp) + str(user.session_version)
 
 
+class VerifiedEmailResetForm(PasswordResetForm):
+    def get_users(self, email):
+        return User.objects.filter(verified_email__iexact=email, is_active=True,
+                                   state=User.State.ACTIVE).exclude(password="").iterator()
+
+
 class LocalReset(PasswordResetView):
     template_name = "registration/password_reset_form.html"
     email_template_name = "registration/password_reset_email.html"
     success_url = reverse_lazy("password_reset_done")
     token_generator = ResetToken()
+    form_class = VerifiedEmailResetForm
 
 
 class LocalChange(PasswordChangeView):
