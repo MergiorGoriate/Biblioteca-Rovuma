@@ -7,7 +7,7 @@ EDITOR = "catalog.manage_collection"
 
 
 def has(user, permission):
-    return bool(user.is_authenticated and user.is_active and user.state == user.State.ACTIVE and (user.is_superuser or user.has_perm(permission)))
+    return bool(user.is_authenticated and user.is_active and user.state == user.State.ACTIVE and user.has_perm(permission))
 
 
 def student(user):
