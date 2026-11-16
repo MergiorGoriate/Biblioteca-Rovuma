@@ -52,6 +52,8 @@ USE_TZ = True
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE / "static-build"
 STATICFILES_DIRS = [BASE / "static"]
+# Railway runs pre-deploy commands in a separate container. Serve assets from the application image too.
+WHITENOISE_USE_FINDERS = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "home"
