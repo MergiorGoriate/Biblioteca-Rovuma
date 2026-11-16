@@ -9,7 +9,7 @@
 {% if work.summary %}<div>{{ work.summary|linebreaks }}</div>{% endif %}
 {% if work.subjects.all or work.keywords %}<div class="tags">{% for subject in work.subjects.all %}<span>{{ subject }}</span>{% endfor %}{% if work.keywords %}<span>{{ work.keywords }}</span>{% endif %}</div>{% endif %}
 {% if work.terms %}<h2>Condições de utilização</h2>{{ work.terms|linebreaks }}{% endif %}
-{% if nav_editor %}<p><a href="{% url 'manage_work' work.pk %}">Gerir obra</a></p>{% endif %}</div>
+</div>
 </article>
 <div class="two-col section">
 <section class="panel"><h2>Leitura digital</h2>

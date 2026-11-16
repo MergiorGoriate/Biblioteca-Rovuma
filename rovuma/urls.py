@@ -1,5 +1,5 @@
 from django.contrib.auth import views as auth
-from django.urls import path
+from django.urls import path, reverse_lazy
 
 from accounts import views as account
 from audit.views import events
@@ -11,6 +11,7 @@ from management import views as management
 
 urlpatterns = [
     path("", catalog.home, name="home"),
+    path("portal/", catalog.portal, name="portal"),
     path("entrar/", account.LocalLogin.as_view(), name="login"),
     path("sair/", account.sign_out, name="logout"),
     path("conta/activar/<str:token>/", account.activate, name="activate"),
@@ -29,6 +30,9 @@ urlpatterns = [
     path("ler/<uuid:pk>/progresso/", reading.update, name="reading_update"),
     path("documento/<uuid:pk>/pdf/", document.pdf, name="pdf"),
     path("documento/<uuid:pk>/descarregar/", document.download, name="download"),
+    path("gestao/palavra-passe/", account.LocalChange.as_view(management_area=True, success_url=reverse_lazy("management")), name="management_password"),
+    path("gestao/entrar/", account.ManagementLogin.as_view(), name="management_login"),
+    path("gestao/pre-visualizar/<uuid:pk>/", reading.preview, name="reader_preview"),
     path("gestao/", management.dashboard, name="management"),
     path("gestao/documentos/", management.document_queue, name="document_queue"),
     path("gestao/obras/", catalog.collection, name="collection"),

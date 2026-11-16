@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Entrar na administração · Biblioteca Rovuma{% endblock %}
+{% block body_class %}management-entry{% endblock %}
+{% block content %}
+<section class="panel login-panel form-panel">
+  <h1>Painel administrativo</h1>
+  <p class="muted">Entre com a sua conta de bibliotecário ou de gestão.</p>
+  {% include 'registration/login_fields.html' %}
+  <a href="{% url 'password_reset' %}">Recuperar palavra-passe</a>
+  <p class="small"><a href="{% url 'login' %}">Voltar à entrada do portal</a></p>
+</section>
+{% endblock %}

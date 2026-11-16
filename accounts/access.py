@@ -2,8 +2,10 @@ from functools import wraps
 from django.contrib.auth.views import redirect_to_login
 from django.core.exceptions import PermissionDenied
 from django.utils import timezone
+from django.urls import reverse
 
 EDITOR = "catalog.manage_collection"
+MANAGEMENT_PERMISSIONS = (EDITOR, "accounts.manage_credential", "accounts.correct_number", "audit.view_event")
 
 
 def has(user, permission):
@@ -16,12 +18,16 @@ def student(user):
                 and user.credential_until >= timezone.localdate())
 
 
-def require(predicate):
+def can_manage(user):
+    return any(has(user, code) for code in MANAGEMENT_PERMISSIONS)
+
+
+def require(predicate, *, login_url="login"):
     def decorate(view):
         @wraps(view)
         def wrapped(request, *args, **kwargs):
             if not request.user.is_authenticated or not request.user.is_active or request.user.state != request.user.State.ACTIVE:
-                return redirect_to_login(request.get_full_path())
+                return redirect_to_login(request.get_full_path(), login_url=reverse(login_url))
             if not predicate(request.user):
                 raise PermissionDenied
             return view(request, *args, **kwargs)
@@ -30,7 +36,7 @@ def require(predicate):
 
 
 def permission(code):
-    return require(lambda user: has(user, code))
+    return require(lambda user: has(user, code), login_url="management_login")
 
 
 def navigation(request):

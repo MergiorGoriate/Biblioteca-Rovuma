@@ -1,11 +1,12 @@
 {% extends "base.html" %}
+{% block title %}Portal da biblioteca · Biblioteca Rovuma{% endblock %}
 {% block content %}
 <section class="hero"><p class="eyebrow">Universidade Rovuma</p><h1>A sua biblioteca</h1>
 <p>Encontre obras digitais e descubra onde consultar os livros do acervo físico.</p>
 <form class="search" action="{% url 'catalogue' %}" method="get"><label class="sr-only" for="home-q">Pesquisar obras</label><input id="home-q" name="q" placeholder="Título, autor, assunto ou identificador"><button class="primary">Pesquisar</button></form>
 <a class="hero-link" href="{% url 'catalogue' %}">Explorar o catálogo <span aria-hidden="true">→</span></a>
 </section>
-<section class="section"><div class="section-head"><h2>Continuar a ler</h2><a href="{% url 'library' %}">Ver minhas leituras</a></div>
+{% if nav_student %}<section class="section"><div class="section-head"><h2>Continuar a ler</h2><a href="{% url 'library' %}">Ver minhas leituras</a></div>
 {% if recent %}<div class="grid">{% for item in recent %}<article class="panel"><p class="eyebrow">Página {{ item.page }}</p><h3><a href="{% url 'reader' item.version_id %}">{{ item.version.document.edition.work.title }}</a></h3></article>{% endfor %}</div>
-{% else %}<div class="empty">As obras que começar a ler aparecem aqui.</div>{% endif %}</section>
+{% else %}<div class="empty">As obras que começar a ler aparecem aqui.</div>{% endif %}</section>{% endif %}
 {% endblock %}

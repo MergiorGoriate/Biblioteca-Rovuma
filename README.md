@@ -20,7 +20,7 @@ As migrações criam a estrutura da base de dados. Para explorar dados fictício
 
 Para uma instalação de uso real, aplique o [procedimento de instalação e primeiro convite](docs/operacoes.md#produção). A base de dados inicia sem documentos e contas de demonstração.
 
-O painel do bibliotecário fica em `/gestao/`. É necessário entrar com uma conta autorizada para ver os módulos atribuídos.
+O portal do leitor fica em `/portal/`. O painel do bibliotecário fica em `/gestao/` e tem entrada própria em `/gestao/entrar/`. É necessário entrar com uma conta autorizada para ver os módulos atribuídos.
 
 Para analisar novos documentos num ambiente local com ficheiros de teste, execute em dois terminais adicionais `python manage.py dispatch_documents` e `python -m documents.worker --spool var/spool`. Instale ClamAV com assinaturas e LibreOffice Writer. Para um ensaio com documentos próprios e inofensivos, a opção explícita `--development-no-antivirus` permite executar o teste estrutural sem ClamAV. A configuração de produção usa o processador em contentor, sem essa opção.
 

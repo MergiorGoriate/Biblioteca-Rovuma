@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "management/base.html" %}
 {% block title %}Painel administrativo · Biblioteca Rovuma{% endblock %}
 {% block content %}
 <header class="dashboard-heading">
@@ -6,7 +6,7 @@
   <div class="actions">
     {% if nav_editor %}<a class="primary" href="{% url 'new_work' %}">Nova obra</a>{% endif %}
     {% if nav_credential %}<a class="secondary" href="{% url 'imports' %}">Importar estudantes</a>{% endif %}
-    {% if user.identity_source == "local" %}<a class="plain" href="{% url 'password_change' %}">Alterar palavra-passe</a>{% endif %}
+    {% if user.identity_source == "local" %}<a class="plain" href="{% url 'management_password' %}">Alterar palavra-passe</a>{% endif %}
   </div>
 </header>
 

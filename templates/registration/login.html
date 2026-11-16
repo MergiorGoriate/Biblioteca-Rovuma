@@ -1,7 +1,6 @@
 {% extends "base.html" %}
 {% block title %}Iniciar sessão · Biblioteca Rovuma{% endblock %}
 {% block content %}
-{% if limited %}<p class="notice error" role="alert">Foram efectuadas demasiadas tentativas. Aguarde 15 minutos e volte a tentar.</p>{% endif %}
 <div class="login-layout">
 <section class="login-hero">
 <p class="eyebrow">Universidade Rovuma</p><h1>Biblioteca Rovuma</h1>
@@ -9,8 +8,9 @@
 <div class="book-art" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
 </section>
 <section class="panel login-panel"><h2>Iniciar sessão</h2><p class="muted">Estudantes entram com o número institucional.</p>
-<form method="post">{% csrf_token %}{{ form.as_p }}<input type="hidden" name="next" value="{{ next }}"><button class="primary">Entrar</button></form>
+{% include 'registration/login_fields.html' %}
 <a href="{% url 'password_reset' %}">Esqueci-me da senha</a>
 <p class="small muted">Para a primeira activação, contacte o bibliotecário.</p>
+<p class="small"><a href="{% url 'management_login' %}">Entrada da administração</a></p>
 </section></div>
 {% endblock %}

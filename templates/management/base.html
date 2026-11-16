@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block body_class %}management{% endblock %}
+{% block header %}
+<a class="brand" href="{% url 'management' %}">{% include 'brand_icon.html' %}<span>Biblioteca Rovuma<small>Painel administrativo</small></span></a>
+<div class="management-account">
+  {% if nav_student or nav_editor %}<a class="secondary" href="{% url 'portal' %}">Abrir portal</a>{% endif %}
+  {% include 'logout_form.html' %}
+</div>
+{% endblock %}
+{% block layout_start %}
+<div class="wrap management-shell">
+  {% with route=request.resolver_match.url_name %}
+  <nav class="management-navigation" aria-label="Navegação administrativa">
+    <a href="{% url 'management' %}"{% if route == 'management' %} aria-current="page"{% endif %}>Visão geral</a>
+    {% if nav_editor %}
+    <a href="{% url 'collection' %}"{% if route == 'collection' or route == 'manage_work' or route == 'edit_work' or route == 'new_work' or route == 'new_related' or route == 'edit_related' %} aria-current="page"{% endif %}>Acervo</a>
+    <a href="{% url 'document_queue' %}"{% if route == 'document_queue' or route == 'reader_preview' or route == 'upload' %} aria-current="page"{% endif %}>Documentos</a>
+    <a href="{% url 'locations' %}"{% if route == 'locations' or route == 'new_location' or route == 'edit_location' %} aria-current="page"{% endif %}>Localizações e registos</a>
+    {% endif %}
+    {% if nav_credential or nav_correct %}
+    <a href="{% url 'students' %}"{% if route == 'students' or route == 'credential' or route == 'correct' or route == 'imports' or route == 'import_preview' %} aria-current="page"{% endif %}>Estudantes</a>
+    {% endif %}
+    {% if nav_audit %}<a href="{% url 'audit' %}"{% if route == 'audit' %} aria-current="page"{% endif %}>Auditoria</a>{% endif %}
+  </nav>
+  {% endwith %}
+{% endblock %}
+{% block main_class %}main management-content{% endblock %}
+{% block layout_end %}</div>{% endblock %}

@@ -1,5 +1,6 @@
-{% extends "base.html" %}{% load static %}{% block content %}
-<a class="back" href="{% url 'work' work.pk %}">← Dados da obra</a>
+{% extends editorial|yesno:"management/base.html,base.html" %}{% load static %}{% block content %}
+{% if editorial %}<a class="back" href="{% url 'manage_work' work.pk %}#documento-{{ version.pk }}">← Gestão da obra</a>
+{% else %}<a class="back" href="{% url 'work' work.pk %}">← Dados da obra</a>{% endif %}
 <div class="section-head"><div><p class="eyebrow">{{ version.get_access_mode_display }}</p><h1>{{ work.title }}</h1></div>
 {% if version.access_mode == 'download' and version.state == 'published' %}<a class="primary" href="{% url 'download' version.pk %}">Descarregar original</a>{% endif %}</div>
 <section id="reader" class="reader" data-pdf="{% url 'pdf' version.pk %}" data-page="{{ page }}" data-update="{% if personal %}{% url 'reading_update' version.pk %}{% endif %}" data-assets="{% static 'vendor/' %}">

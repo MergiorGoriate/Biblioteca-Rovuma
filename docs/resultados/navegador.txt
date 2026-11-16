@@ -1,2 +1,2 @@
-1440 × 900: sessão, pesquisa, PDF, marcador, painel administrativo, fila e gestão passaram.
-390 × 844: sessão, pesquisa, PDF, marcador, painel administrativo, fila e gestão passaram.
+1440 × 900: entrada do portal, PDF, marcador, entrada administrativa, navegação e fila validados.
+390 × 844: entrada do portal, PDF, marcador, entrada administrativa, navegação e fila validados.

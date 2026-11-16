@@ -13,10 +13,9 @@ from django.http import FileResponse, Http404
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
-from accounts.access import EDITOR, has, permission, require, student
+from accounts.access import EDITOR, can_manage, has, permission, require, student
 from audit.models import record
 from documents.models import Version
-from management.views import can_manage
 from reading.models import Bookmark, Progress
 from .models import Author, Copy, Edition, Identifier, Location, Subject, Work
 
@@ -25,11 +24,10 @@ def allowed(user):
     return student(user) or has(user, EDITOR)
 
 
-def visible(user):
-    qs = Work.objects.prefetch_related("authors", "subjects", "editions__identifiers")
-    if not has(user, EDITOR):
-        qs = qs.filter(state=Work.State.PUBLISHED)
-    return qs
+def visible():
+    return Work.objects.filter(state=Work.State.PUBLISHED).prefetch_related(
+        "authors", "subjects", "editions__identifiers",
+    )
 
 
 def available_readings(model, user):
@@ -40,17 +38,22 @@ def available_readings(model, user):
 
 @require(lambda user: user.is_authenticated)
 def home(request):
-    if not student(request.user):
-        if can_manage(request.user):
-            return redirect("management")
+    if not student(request.user) and can_manage(request.user):
+        return redirect("management")
+    return redirect("portal")
+
+
+@require(lambda user: user.is_authenticated)
+def portal(request):
+    if not allowed(request.user):
         return render(request, "staff_home.html")
-    recent = available_readings(Progress, request.user).order_by("-updated")[:6]
+    recent = available_readings(Progress, request.user).order_by("-updated")[:6] if student(request.user) else []
     return render(request, "home.html", {"recent": recent})
 
 
 @require(allowed)
 def catalogue(request):
-    qs = visible(request.user)
+    qs = visible()
     q = request.GET.get("q", "").strip()
     kind = request.GET.get("tipo", "")
     language = request.GET.get("idioma", "")
@@ -80,7 +83,7 @@ def catalogue(request):
 
 @require(allowed)
 def detail(request, pk):
-    work = get_object_or_404(visible(request.user), pk=pk)
+    work = get_object_or_404(visible(), pk=pk)
     versions = Version.objects.filter(document__edition__work=work, state=Version.State.PUBLISHED).select_related("document__edition")
     copies = list(Copy.objects.filter(edition__work=work, state=Copy.State.LOCAL)
                   .select_related("location", "edition")
@@ -94,7 +97,7 @@ def cover_path(pk):
 
 @require(allowed)
 def cover(request, pk):
-    work = get_object_or_404(visible(request.user), pk=pk)
+    work = get_object_or_404(visible(), pk=pk)
     path = cover_path(work.pk)
     try:
         image = path.open("rb")
@@ -171,7 +174,7 @@ def edit_work(request, pk=None):
                     os.unlink(temporary)
         record(request.user, "collection", "Guardou obra", saved.pk)
         return redirect("manage_work", pk=saved.pk)
-    return render(request, "form.html", {"form": form, "heading": "Dados da obra"})
+    return render(request, "form.html", {"form": form, "heading": "Dados da obra", "layout": "management/base.html"})
 
 
 @permission(EDITOR)
@@ -242,4 +245,4 @@ def edit_related(request, kind, parent=None, pk=None):
             return redirect("locations")
         except IntegrityError:
             form.add_error(None, "Já existe um registo com esses dados.")
-    return render(request, "form.html", {"form": form, "heading": "Registo do acervo"})
+    return render(request, "form.html", {"form": form, "heading": "Registo do acervo", "layout": "management/base.html"})

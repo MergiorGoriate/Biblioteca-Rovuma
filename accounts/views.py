@@ -7,7 +7,7 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordResetView
+from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordResetView, redirect_to_login
 from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm, SetPasswordForm
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
@@ -20,7 +20,7 @@ from django.views.decorators.cache import never_cache
 from django.views.decorators.http import require_POST
 
 from audit.models import record
-from .access import has, permission, require, student
+from .access import can_manage, has, permission, require, student
 from .importing import validate_number, validate_rows
 from .models import ImportBatch, User
 from .throttling import admit
@@ -47,6 +47,19 @@ class LocalLogin(ThrottledFormView, LoginView):
     authentication_form = LocalAuthenticationForm
     rate_scope = "login"
     rate_limit = 20
+
+
+class ManagementAuthenticationForm(LocalAuthenticationForm):
+    def confirm_login_allowed(self, user):
+        super().confirm_login_allowed(user)
+        if not can_manage(user):
+            raise self.get_invalid_login_error()
+
+
+class ManagementLogin(LocalLogin):
+    template_name = "management/login.html"
+    authentication_form = ManagementAuthenticationForm
+    next_page = reverse_lazy("management")
 
 
 @require_POST
@@ -92,9 +105,20 @@ class LocalReset(ThrottledFormView, PasswordResetView):
 
 class LocalChange(PasswordChangeView):
     template_name = "registration/password_change_form.html"
+    management_area = False
     success_url = reverse_lazy("password_change_done")
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.management_area:
+            context["layout"] = "management/base.html"
+        return context
+
     def dispatch(self, request, *args, **kwargs):
+        if self.management_area and not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path(), login_url=reverse_lazy("management_login"))
+        if self.management_area and not can_manage(request.user):
+            raise PermissionDenied
         if request.user.is_authenticated and request.user.identity_source != User.Identity.LOCAL:
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
@@ -127,7 +151,8 @@ def activate(request, token):
     return response
 
 
-@require(lambda user: has(user, "accounts.manage_credential") or has(user, "accounts.correct_number"))
+@require(lambda user: has(user, "accounts.manage_credential") or has(user, "accounts.correct_number"),
+         login_url="management_login")
 def students(request):
     q = request.GET.get("q", "").strip()[:64]
     state = request.GET.get("estado", "")
