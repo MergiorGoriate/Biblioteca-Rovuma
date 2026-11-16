@@ -24,6 +24,18 @@ with sync_playwright() as playwright:
         page.on("pageerror", lambda error: print(f"JavaScript: {error}", flush=True))
         page.on("console", lambda entry: print(f"Navegador: {entry.text}", flush=True) if entry.type == "error" else None)
         page.goto(base + "/entrar/")
+        login_panel = page.get_by_role("region", name="Iniciar sessão")
+        expect(login_panel.get_by_role("link", name="Recuperar palavra-passe")).to_have_attribute("href", "/conta/recuperar/")
+        expect(login_panel.get_by_role("link", name="Entrada da administração")).to_have_attribute("href", "/admin/entrar/")
+        expect(login_panel.get_by_role("button", name="Entrar")).to_be_in_viewport(ratio=1)
+        library_photo = page.locator(".entry-photo img")
+        expect(library_photo).to_have_js_property("naturalWidth", 990)
+        login_bounds, photo_bounds = login_panel.bounding_box(), library_photo.bounding_box()
+        if mobile:
+            assert login_bounds["y"] < photo_bounds["y"]
+        else:
+            assert photo_bounds["x"] < login_bounds["x"]
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         page.locator("#id_username").fill("000042")
         page.locator("#id_password").fill(os.environ["DEMO_STUDENT_PASSWORD"])
         page.get_by_role("button", name="Entrar").click()

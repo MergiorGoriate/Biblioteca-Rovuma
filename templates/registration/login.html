@@ -1,16 +1,26 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load static %}
 {% block title %}Iniciar sessão · Biblioteca Rovuma{% endblock %}
+{% block main_class %}wrap main entry-main{% endblock %}
+{% block footer %}{% endblock %}
 {% block content %}
-<div class="login-layout">
-<section class="login-hero">
-<p class="eyebrow">Universidade Rovuma</p><h1>Biblioteca Rovuma</h1>
-<p>Consulte documentos digitais e encontre os livros disponíveis para consulta nas instalações da biblioteca.</p>
-<div class="book-art" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></div>
-</section>
-<section class="panel login-panel"><h2>Iniciar sessão</h2><p class="muted">Estudantes entram com o número institucional.</p>
-{% include 'registration/login_fields.html' %}
-<a href="{% url 'password_reset' %}">Esqueci-me da senha</a>
-<p class="small muted">Para a primeira activação, contacte o bibliotecário.</p>
-<p class="small"><a href="{% url 'management_login' %}">Entrada da administração</a></p>
-</section></div>
+<div class="entry-layout">
+  <section class="entry-login" aria-labelledby="entry-title">
+    <h1 id="entry-title">Iniciar sessão</h1>
+    <p class="muted entry-instruction">Os estudantes entram com o número institucional.</p>
+    {% include 'registration/login_fields.html' %}
+    <a class="entry-recovery" href="{% url 'password_reset' %}">Recuperar palavra-passe</a>
+    <p class="small muted entry-help">Para activar a conta pela primeira vez, contacte o bibliotecário.</p>
+    <div class="entry-administration">
+      <a href="{% url 'management_login' %}">Entrada da administração <span aria-hidden="true">→</span></a>
+    </div>
+  </section>
+
+  <aside class="entry-photo" aria-labelledby="entry-library-title">
+    <img src="{% static 'portal-biblioteca.webp' %}" width="990" height="660" alt="">
+    <div class="entry-photo-caption">
+      <h2 id="entry-library-title">A sua biblioteca</h2>
+      <p>Leia documentos digitais e encontre livros para consulta presencial.</p>
+    </div>
+  </aside>
+</div>
 {% endblock %}
