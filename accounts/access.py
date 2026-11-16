@@ -7,7 +7,7 @@ EDITOR = "catalog.manage_collection"
 
 
 def has(user, permission):
-    return bool(user.is_authenticated and user.is_active and user.state == user.State.ACTIVE and user.has_perm(permission))
+    return bool(user.is_authenticated and user.is_active and user.state == user.State.ACTIVE and (user.user_permissions.filter(content_type__app_label=permission.split(".")[0], codename=permission.split(".")[1]).exists() or user.groups.filter(permissions__content_type__app_label=permission.split(".")[0], permissions__codename=permission.split(".")[1]).exists()))
 
 
 def student(user):
