@@ -5,22 +5,16 @@ x-app: &app
   build:
     context: .
     target: web
-  environment:
+  environment: &app_environment
     APP_ENV: ${APP_ENV:-production}
     TRUST_ROVUMA_PROXY: "1"
-    DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
-    DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
+    DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Defina DJANGO_SECRET_KEY}
+    DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?Defina os hosts da biblioteca}
     POSTGRES_DB: ${POSTGRES_DB}
     POSTGRES_USER: ${POSTGRES_USER}
-    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina a senha PostgreSQL da aplicação}
     UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-1073741824}
     DISK_RESERVE_BYTES: ${DISK_RESERVE_BYTES:-268435456}
-    EMAIL_HOST: ${EMAIL_HOST}
-    EMAIL_PORT: ${EMAIL_PORT:-587}
-    EMAIL_HOST_USER: ${EMAIL_HOST_USER}
-    EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD}
-    EMAIL_USE_TLS: ${EMAIL_USE_TLS:-1}
-    DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
     POSTGRES_HOST: db
     PRIVATE_ROOT: /data/private
     SPOOL_ROOT: /data/spool
@@ -37,20 +31,41 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${POSTGRES_BOOTSTRAP_PASSWORD:?Defina a senha de inicialização PostgreSQL}
       ROVUMA_DB_USER: ${POSTGRES_USER}
-      ROVUMA_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      ROVUMA_DB_PASSWORD: ${POSTGRES_PASSWORD:?Defina a senha PostgreSQL da aplicação}
     volumes:
       - database:/var/lib/postgresql/data
       - ./ops/init-db.sh:/docker-entrypoint-initdb.d/10-rovuma.sh:ro
     networks: [backend]
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
       interval: 5s
       timeout: 5s
       retries: 12
 
+  migrate:
+    <<: *app
+    command: ["python", "manage.py", "migrate", "--noinput"]
+    networks: [backend]
+    restart: "no"
+
   web:
     <<: *app
+    depends_on: &migrated_database
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      <<: *app_environment
+      EMAIL_BACKEND: ${EMAIL_BACKEND:-django.core.mail.backends.smtp.EmailBackend}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_HOST: ${EMAIL_HOST:-localhost}
+      EMAIL_PORT: ${EMAIL_PORT:-587}
+      EMAIL_HOST_USER: ${EMAIL_HOST_USER:-}
+      EMAIL_HOST_PASSWORD: ${EMAIL_HOST_PASSWORD:-}
+      EMAIL_USE_TLS: ${EMAIL_USE_TLS:-1}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL:-biblioteca@example.invalid}
     command: ["sh", "-ec", "python manage.py collectstatic --noinput && exec gunicorn --bind 0.0.0.0:8000 --workers 3 --timeout 90 rovuma.wsgi:application"]
     volumes:
       - private:/data/private
@@ -58,6 +73,7 @@ services:
 
   dispatcher:
     <<: *app
+    depends_on: *migrated_database
     command: ["python", "manage.py", "dispatch_documents"]
     volumes:
       - private:/data/private
@@ -95,7 +111,9 @@ services:
   proxy:
     image: caddy:2-alpine
     environment:
-      BIBLIOTECA_HOST: ${BIBLIOTECA_HOST}
+      BIBLIOTECA_HOST: ${BIBLIOTECA_HOST:?Defina o domínio de acesso}
+    depends_on:
+      - web
     ports:
       - "80:80"
       - "443:443"
