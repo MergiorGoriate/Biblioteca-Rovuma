@@ -9,7 +9,7 @@ class SessionVersion:
     def __call__(self, request):
         user = request.user
         if user.is_authenticated:
-            if not user.is_active or request.session.get("account_version", user.session_version) != user.session_version:
+            if not user.is_active or user.state != user.State.ACTIVE or request.session.get("account_version", user.session_version) != user.session_version:
                 logout(request)
                 return redirect("login")
             request.session.setdefault("account_version", user.session_version)
