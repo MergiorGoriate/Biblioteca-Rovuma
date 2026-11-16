@@ -17,6 +17,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 from accounts.access import EDITOR, has, permission, require, student
 from audit.models import record
 from catalog.models import Edition, Work
+from .formats import SUPPORTED_FORMATS, TEXT_MAX_BYTES
 from .models import Document, Job, Licence, Upload, Version
 from .storage import original, original_file, part, reading_pdf
 
@@ -33,7 +34,11 @@ def data_error(message, status=400, **extra):
 @permission(EDITOR)
 def upload_page(request, pk):
     edition = get_object_or_404(Edition.objects.select_related("work"), pk=pk)
-    return render(request, "upload.html", {"edition": edition, "form": UploadForm(), "limit": settings.UPLOAD_MAX_BYTES})
+    return render(request, "upload.html", {
+        "edition": edition, "form": UploadForm(), "limit": settings.UPLOAD_MAX_BYTES,
+        "accept": ",".join(f".{extension}" for extension in SUPPORTED_FORMATS),
+        "text_limit": min(TEXT_MAX_BYTES, settings.UPLOAD_MAX_BYTES),
+    })
 
 
 @permission(EDITOR)
@@ -42,17 +47,19 @@ def start_upload(request, pk):
     edition = get_object_or_404(Edition, pk=pk)
     form = UploadForm(request.POST)
     name = Path(request.POST.get("name", "").replace(chr(92), "/")).name
-    format_ = Path(name).suffix.lower()
+    format_ = Path(name).suffix[1:].lower()
     try:
         size = int(request.POST.get("size", "0"))
     except ValueError:
         return data_error("Tamanho inválido.")
     if not form.is_valid():
         return data_error("Indique a modalidade de acesso e a autorização.")
-    if format_ not in {".pdf", ".docx"} or len(name) > 180 or any(ord(c) < 32 for c in name):
-        return data_error("Escolha um ficheiro PDF ou DOCX com um nome válido.")
+    if format_ not in SUPPORTED_FORMATS or len(name) > 180 or any(ord(c) < 32 for c in name):
+        return data_error("Escolha um ficheiro PDF, DOCX, ODT ou TXT com um nome válido.")
     if not 0 < size <= settings.UPLOAD_MAX_BYTES:
         return data_error("O tamanho excede o limite configurado ou o ficheiro está vazio.")
+    if format_ == "txt" and size > TEXT_MAX_BYTES:
+        return data_error("Os ficheiros TXT podem ter até 10 MiB.")
     settings.PRIVATE_ROOT.mkdir(parents=True, exist_ok=True)
     if shutil.disk_usage(settings.PRIVATE_ROOT).free < size + settings.DISK_RESERVE_BYTES:
         return data_error("O servidor tem espaço insuficiente.", 507)
@@ -87,6 +94,7 @@ def chunks(request, upload_id):
             upload.save(update_fields=["version", "updated"])
             record(request.user, "collection", "Recebeu documento para análise", version.pk, edition=upload.edition_id)
             transaction.on_commit(lambda: part(upload_id).unlink(missing_ok=True))
+            messages.success(request, "Ficheiro recebido. Aguarda análise na fila de documentos.")
             return JsonResponse({"offset": upload.size, "complete": True,
                                  "next": reverse("manage_work", args=[upload.edition.work_id])})
         payload = request.FILES.get("chunk")

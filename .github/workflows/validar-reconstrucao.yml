@@ -54,11 +54,16 @@ jobs:
             /opt/clamav-ci/clamscan --no-summary /tmp/sonda.txt || status=$?
             test "$status" -eq 1
           '
-          version=$(docker compose run -T --rm --no-deps dispatcher python -m ops.verify_document_pipeline)
+          versions=()
+          for format in docx odt txt; do
+            versions+=("$(docker compose run -T --rm --no-deps dispatcher python -m ops.verify_document_pipeline --format "$format")")
+          done
           docker compose run --rm --no-deps dispatcher python manage.py dispatch_documents --once
           docker compose run --rm --no-deps processor env PATH=/opt/clamav-ci:/usr/local/bin:/usr/bin:/bin python -m documents.worker --spool /data/spool --once
           docker compose run --rm --no-deps dispatcher python manage.py dispatch_documents --once
-          docker compose run --rm --no-deps dispatcher python -m ops.verify_document_pipeline "$version"
+          for version in "${versions[@]}"; do
+            docker compose run --rm --no-deps dispatcher python -m ops.verify_document_pipeline "$version"
+          done
       - name: Remover ambiente descartável
         if: always()
         run: |

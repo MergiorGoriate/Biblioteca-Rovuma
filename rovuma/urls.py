@@ -46,6 +46,7 @@ urlpatterns = [
     path("admin/documentos/", management.document_queue, name="document_queue"),
     path("admin/obras/", catalog.collection, name="collection"),
     path("admin/obras/nova/", catalog.edit_work, name="new_work"),
+    path("admin/obras/nova/digital/", catalog.edit_work, {"upload_document": True}, name="new_digital_work"),
     path("admin/obras/<int:pk>/", catalog.manage_work, name="manage_work"),
     path("admin/obras/<int:pk>/editar/", catalog.edit_work, name="edit_work"),
     path("admin/obras/<int:pk>/estado/", catalog.work_state, name="work_state"),

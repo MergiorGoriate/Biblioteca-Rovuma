@@ -3,17 +3,24 @@ import argparse
 import hashlib
 import json
 import os
+import re
 import shutil
+import stat
 import subprocess
 import tempfile
 import time
 import uuid
 from pathlib import Path
+from urllib.parse import unquote, urlsplit
+from xml.etree.ElementTree import ParseError
 from zipfile import BadZipFile, ZipFile
 
 from defusedxml.ElementTree import fromstring
+from defusedxml.common import DefusedXmlException
 from pypdf import PdfReader
 from pypdf.errors import PdfReadError
+
+from .formats import CONVERTED_FORMATS, TEXT_MAX_BYTES
 
 
 class Rejected(Exception):
@@ -66,11 +73,69 @@ def validate_docx(path):
         raise Rejected("Estrutura DOCX inválida.") from exc
 
 
-def convert(path, folder, target):
+def validate_odt(path):
+    mimetype = b"application/vnd.oasis.opendocument.text"
+    href_key = "{http://www.w3.org/1999/xlink}href"
+    office = "{urn:oasis:names:tc:opendocument:xmlns:office:1.0}"
+    text_link = "{urn:oasis:names:tc:opendocument:xmlns:text:1.0}a"
+    blocked_elements = {"script", "event-listener", "object", "object-ole",
+                        "plugin", "applet", "floating-frame", "dde-connection", "encrypted-data", "encryption-data"}
+    try:
+        with ZipFile(path) as zipped:
+            members = zipped.infolist()
+            names = {member.filename for member in members}
+            if len(members) > 8000 or sum(member.file_size for member in members) > 768 * 1024**2:
+                raise Rejected("O ODT ultrapassa os limites internos de segurança.")
+            if (len(names) != len(members) or not {"mimetype", "content.xml", "META-INF/manifest.xml"} <= names
+                    or zipped.getinfo("mimetype").file_size != len(mimetype) or zipped.read("mimetype") != mimetype):
+                raise Rejected("Estrutura ODT inválida.")
+            for member in members:
+                name = member.filename
+                parts = Path(name.lower()).parts
+                if (member.flag_bits & 1 or name.startswith("/") or "\\" in name or ".." in parts
+                        or stat.S_ISLNK(member.external_attr >> 16)
+                        or any(part in {"basic", "scripts", "objectreplacements"} or part.startswith("object ") for part in parts)):
+                    raise Rejected("O ODT contém macros, objectos incorporados ou entradas inseguras.")
+                if not name.lower().endswith(".xml"):
+                    continue
+                if member.file_size > 12 * 1024**2:
+                    raise Rejected("O ODT contém uma entrada XML demasiado grande.")
+                root = fromstring(zipped.read(member))
+                if name == "content.xml" and (
+                    root.tag != f"{office}document-content" or root.find(f"{office}body/{office}text") is None
+                ):
+                    raise Rejected("O ODT não contém um documento de texto válido.")
+                for element in root.iter():
+                    if element.tag.rsplit("}", 1)[-1] in blocked_elements:
+                        raise Rejected("O ODT contém elementos activos, incorporados ou encriptados.")
+                    href = element.get(href_key, "")
+                    if not href or href.startswith("#"):
+                        continue
+                    if element.tag == text_link and urlsplit(href).scheme.lower() in {"http", "https", "mailto"}:
+                        continue
+                    if unquote(href).removeprefix("./") not in names:
+                        raise Rejected("O ODT tem dependências externas ou incompatíveis.")
+    except (BadZipFile, ValueError, ParseError, DefusedXmlException, RuntimeError) as exc:
+        raise Rejected("Estrutura ODT inválida.") from exc
+
+
+def validate_text(path):
+    if path.stat().st_size > TEXT_MAX_BYTES:
+        raise Rejected("Os ficheiros TXT podem ter até 10 MiB.")
+    try:
+        text = path.read_text(encoding="utf-8-sig")
+    except UnicodeDecodeError as exc:
+        raise Rejected("Guarde o ficheiro TXT com codificação UTF-8.") from exc
+    if not text.strip() or re.search(r"[\x00-\x08\x0b\x0e-\x1f\x7f-\x9f]", text):
+        raise Rejected("O TXT está vazio ou contém caracteres de controlo incompatíveis.")
+
+
+def convert(path, folder, target, file_format="docx"):
     binary = shutil.which("libreoffice")
     if not binary:
         raise Rejected("LibreOffice indisponível no processador isolado.")
-    input_path = folder / "input.docx"
+    filters = {"docx": "MS Word 2007 XML", "odt": "writer8", "txt": "Text (encoded):UTF8,LF,Liberation Mono,pt-PT"}
+    input_path = folder / f"input.{file_format}"
     shutil.copyfile(path, input_path)
     profile = folder / "profile/user"
     profile.mkdir(parents=True)
@@ -80,12 +145,13 @@ def convert(path, folder, target):
         '<prop oor:name="MacroSecurityLevel" oor:op="fuse"><value>3</value></prop>'
         '</item></oor:items>', encoding="utf-8")
     result = subprocess.run([binary, f"-env:UserInstallation={(folder / 'profile').as_uri()}",
-                             "--headless", "--norestore", "--convert-to", "pdf:writer_pdf_Export",
+                             "--headless", "--norestore", f"--infilter={filters[file_format]}",
+                             "--convert-to", "pdf:writer_pdf_Export",
                              "--outdir", str(folder), str(input_path)],
                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=120)
     output = folder / "input.pdf"
     if result.returncode or not output.is_file():
-        raise Rejected("Não foi possível converter o DOCX em PDF.")
+        raise Rejected(f"Não foi possível converter o {file_format.upper()} em PDF.")
     shutil.copyfile(output, target)
 
 
@@ -142,13 +208,16 @@ def run_one(folder, required):
         scan(origin, required)
         with origin.open("rb") as fp:
             digest = hashlib.file_digest(fp, "sha256").hexdigest()
-        if job["format"] == "docx":
-            validate_docx(origin)
+        file_format = job["format"]
+        if file_format in CONVERTED_FORMATS:
+            {"docx": validate_docx, "odt": validate_odt, "txt": validate_text}[file_format](origin)
             with tempfile.TemporaryDirectory() as working:
-                convert(origin, Path(working), target)
+                convert(origin, Path(working), target, file_format)
             scan(target, required)
-        else:
+        elif file_format == "pdf":
             target = origin
+        else:
+            raise Rejected("Formato de documento incompatível.")
         pages = pdf_pages(target)
         if target != origin:
             target.replace(folder / "reader.pdf")

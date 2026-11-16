@@ -3,6 +3,7 @@
 {% block content %}
 <header class="admin-page-heading">
   <h1>Gestão do acervo</h1>
+  <a class="primary admin-action" href="{% url 'new_digital_work' %}">{% include "management/icon.html" with icon="upload" %}Carregar nova obra</a>
 </header>
 
 <section class="admin-collection" aria-labelledby="collection-heading">

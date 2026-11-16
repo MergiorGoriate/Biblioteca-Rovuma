@@ -37,7 +37,7 @@ Configure o agendador do servidor para executar diariamente, a partir da pasta d
 
 O proxy Caddy fornece o endereço observado da ligação através de `X-Rovuma-Client`, substituindo o cabeçalho recebido. Active `TRUST_ROVUMA_PROXY=1` apenas se o serviço Web for acessível exclusivamente por um proxy que sobrescreva esse cabeçalho. Noutras instalações, a aplicação utiliza o endereço da ligação apresentado pelo servidor de aplicação. Verifique o comportamento de limitação quando os utilizadores partilham um proxy ou uma rede.
 
-O carregamento aceita PDF e DOCX. O limite do documento é configurável e o envio usa partes de 1 MiB; o proxy aceita pedidos até 6 MB. A conversão de DOCX está sujeita aos limites de expansão do ZIP, de espaço temporário, de memória e de duração do processador. Documentos Word antigos em formato DOC e documentos com macros devem ser convertidos para DOCX sem macros antes do carregamento.
+O carregamento aceita PDF, DOCX, ODT e TXT em UTF-8. O limite do documento é configurável, com um máximo adicional de 10 MiB para TXT. O envio usa partes de 1 MiB e o proxy aceita pedidos até 6 MB. O processador converte DOCX, ODT e TXT em PDF para leitura. A conversão está sujeita aos limites de expansão do ZIP, de espaço temporário, de memória e de duração do processador. Guarde documentos Word antigos como DOCX sem macros antes do carregamento.
 
 Serviços de proxy ou de observabilidade geridos pelo alojamento podem registar o caminho das ligações de activação e recuperação independentemente do Django. O operador deve configurar a omissão desses caminhos e restringir o acesso aos registos do alojamento antes de utilizar dados reais.
 

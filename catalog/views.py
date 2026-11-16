@@ -169,25 +169,31 @@ class WorkForm(forms.ModelForm):
 
 
 @permission(EDITOR)
-def edit_work(request, pk=None):
+def edit_work(request, pk=None, upload_document=False):
     work = get_object_or_404(Work, pk=pk) if pk else None
     form = WorkForm(request.POST or None, request.FILES or None, instance=work)
     if request.method == "POST" and form.is_valid():
-        saved = form.save()
-        if form.cleaned_data["cover_image"]:
-            path = cover_path(saved.pk)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            fd, temporary = mkstemp(dir=path.parent)
-            try:
-                with os.fdopen(fd, "wb") as target:
-                    target.write(form.cleaned_data["cover_image"])
-                os.replace(temporary, path)
-            finally:
-                if os.path.exists(temporary):
-                    os.unlink(temporary)
-        record(request.user, "collection", "Guardou obra", saved.pk)
+        with transaction.atomic():
+            saved = form.save()
+            if upload_document:
+                edition = Edition.objects.create(work=saved, label="1.ª edição")
+            record(request.user, "collection", "Guardou obra", saved.pk)
+            if form.cleaned_data["cover_image"]:
+                path = cover_path(saved.pk)
+                path.parent.mkdir(parents=True, exist_ok=True)
+                fd, temporary = mkstemp(dir=path.parent)
+                try:
+                    with os.fdopen(fd, "wb") as target:
+                        target.write(form.cleaned_data["cover_image"])
+                    os.replace(temporary, path)
+                finally:
+                    if os.path.exists(temporary):
+                        os.unlink(temporary)
+        if upload_document:
+            return redirect("upload", pk=edition.pk)
         return redirect("manage_work", pk=saved.pk)
-    return render(request, "form.html", {"form": form, "heading": "Dados da obra", "layout": "management/base.html"})
+    return render(request, "form.html", {"form": form, "heading": "Registar obra digital" if upload_document else "Dados da obra",
+                                        "layout": "management/base.html", "submit": "Continuar para o carregamento" if upload_document else None})
 
 
 @permission(EDITOR)

@@ -9,6 +9,7 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 
+from documents.formats import CONVERTED_FORMATS
 from documents.models import Job, Version
 from documents.remote_processor import Unavailable, process
 from documents.storage import original, reading_pdf
@@ -43,7 +44,7 @@ def advance(job):
                     digest = hashlib.file_digest(file, "sha256").hexdigest()
                 if result["sha256"] != digest or not 1 <= result["pages"] <= 1_000_000:
                     raise ValueError
-                if version.file_format == "docx":
+                if version.file_format in CONVERTED_FORMATS:
                     path = reading_pdf(version)
                     converted = folder / "reader.pdf"
                     if shutil.disk_usage(path.parent).free < converted.stat().st_size + settings.DISK_RESERVE_BYTES:
@@ -77,7 +78,7 @@ def advance_remote(job, url, token):
         if result.get("error"):
             job.state, job.error = Job.State.ERROR, result["error"]
         else:
-            if version.file_format == "docx":
+            if version.file_format in CONVERTED_FORMATS:
                 pending.replace(path)
             version.sha256 = result["sha256"]
             version.pages = result["pages"]

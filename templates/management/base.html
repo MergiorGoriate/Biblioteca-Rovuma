@@ -32,7 +32,7 @@
       {% if nav_editor %}
       <div class="management-menu-group">
         <p>Acervo e documentos</p>
-        <a href="{% url 'collection' %}" title="Obras e edições"{% if route == 'collection' or route == 'manage_work' or route == 'edit_work' or route == 'new_work' or kind == 'edicao' or kind == 'identificador' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="books" %}<span>Obras e edições</span></a>
+        <a href="{% url 'collection' %}" title="Obras e edições"{% if route == 'collection' or route == 'manage_work' or route == 'edit_work' or route == 'new_work' or route == 'new_digital_work' or kind == 'edicao' or kind == 'identificador' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="books" %}<span>Obras e edições</span></a>
         <a href="{% url 'document_queue' %}" title="Fila de documentos"{% if route == 'document_queue' or route == 'reader_preview' or route == 'upload' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="file" %}<span>Fila de documentos</span></a>
         <a href="{% url 'inventory' %}" title="Exemplares físicos"{% if route == 'inventory' or kind == 'exemplar' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="box" %}<span>Exemplares físicos</span></a>
         <a href="{% url 'locations' %}" title="Localizações, autores e assuntos"{% if route == 'locations' or route == 'new_location' or route == 'edit_location' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="tags" %}<span>Localizações, autores e assuntos</span></a>

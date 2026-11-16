@@ -11,7 +11,7 @@ from .remote_processor import ProcessorServer, process
 
 
 class PrivateTransportTests(TestCase):
-    def test_authorization_and_docx_round_trip(self):
+    def test_authorization_and_converted_formats_round_trip(self):
         key = "temporary-local-test-key-" * 2
         payload = b"Conteudo de ensaio"
         converted = b"%PDF-1.7"
@@ -37,9 +37,11 @@ class PrivateTransportTests(TestCase):
                      patch("documents.remote_processor.run_one", side_effect=worker), \
                      patch("documents.remote_processor.http.client.HTTPConnection",
                            side_effect=lambda name, port, timeout: HTTPConnection(host, port, timeout=5)):
-                    result = process(f"http://processador.railway.internal:{port}", key, source, "docx", target)
-                self.assertEqual(result["pages"], 3)
-                self.assertEqual(target.read_bytes(), converted)
+                    for file_format in ("docx", "odt", "txt"):
+                        with self.subTest(file_format=file_format):
+                            result = process(f"http://processador.railway.internal:{port}", key, source, file_format, target)
+                            self.assertEqual(result["pages"], 3)
+                            self.assertEqual(target.read_bytes(), converted)
             finally:
                 server.shutdown()
                 thread.join()

@@ -27,6 +27,22 @@ Target="word/document.xml"/>
 </w:document>""".strip())
 
 
+def write_probe_odt(path):
+    with ZipFile(path, "w") as archive:
+        archive.writestr("mimetype", "application/vnd.oasis.opendocument.text")
+        archive.writestr("META-INF/manifest.xml", """\
+<manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2">
+  <manifest:file-entry manifest:full-path="/" manifest:media-type="application/vnd.oasis.opendocument.text"/>
+  <manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/>
+</manifest:manifest>""")
+        archive.writestr("content.xml", """\
+<office:document-content xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0"
+ xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" office:version="1.2">
+  <office:scripts/>
+  <office:body><office:text><text:p>Ensaio de conversão ODT.</text:p></office:text></office:body>
+</office:document-content>""")
+
+
 def main():
     for binary in ("clamscan", "libreoffice"):
         if not shutil.which(binary):

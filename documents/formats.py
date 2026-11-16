@@ -1,0 +1,3 @@
+SUPPORTED_FORMATS = ("pdf", "docx", "odt", "txt")
+CONVERTED_FORMATS = frozenset(SUPPORTED_FORMATS[1:])
+TEXT_MAX_BYTES = 10 * 1024**2
