@@ -45,13 +45,27 @@ def sign_out(request):
 
 class ResetToken(PasswordResetTokenGenerator):
     def _make_hash_value(self, user, timestamp):
-        return super()._make_hash_value(user, timestamp) + str(user.session_version)
+        return f"{super()._make_hash_value(user, timestamp)}:{user.session_version}:{user.verified_email}"
 
 
 class VerifiedEmailResetForm(PasswordResetForm):
     def get_users(self, email):
-        return User.objects.filter(verified_email__iexact=email, is_active=True,
-                                   state=User.State.ACTIVE).exclude(password="").iterator()
+        users = User.objects.filter(
+            verified_email__iexact=email,
+            is_active=True,
+            state=User.State.ACTIVE,
+            identity_source=User.Identity.LOCAL,
+        ).exclude(password="")
+        return (user for user in users.iterator() if user.has_usable_password())
+
+    def send_mail(self, subject_template_name, email_template_name, context,
+                  from_email, to_email, html_email_template_name=None):
+        verified_email = context["user"].verified_email
+        return super().send_mail(
+            subject_template_name, email_template_name,
+            {**context, "email": verified_email}, from_email, verified_email,
+            html_email_template_name=html_email_template_name,
+        )
 
 
 class LocalReset(PasswordResetView):

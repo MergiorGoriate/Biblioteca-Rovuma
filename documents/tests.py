@@ -179,9 +179,21 @@ class LibraryTest(TestCase):
 
     def test_password_recovery_changes_existing_account(self):
         from django.core import mail
+        self.student.email = "geral@example.invalid"
         self.student.verified_email = "validado@example.invalid"
         self.student.save()
-        self.client.post(self.url("password_reset"), {"email": self.student.verified_email})
+        User.objects.create_user(
+            username="institutional", password="Test!Institutional",
+            verified_email=self.student.verified_email, identity_source=User.Identity.INSTITUTIONAL,
+        )
+        User.objects.create_user(username="without-password", verified_email=self.student.verified_email)
+        response = self.client.post(self.url("password_reset"), {"email": self.student.email})
+        self.assertRedirects(response, self.url("password_reset_done"))
+        self.assertEqual(len(mail.outbox), 0)
+        response = self.client.post(self.url("password_reset"), {"email": self.student.verified_email})
+        self.assertRedirects(response, self.url("password_reset_done"))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.student.verified_email])
         link = next(line for line in mail.outbox[0].body.splitlines() if line.startswith("http"))
         response = self.client.get(link)
         result = self.client.post(response.url, {"new_password1": "New!Example-135", "new_password2": "New!Example-135"})
