@@ -1,0 +1,41 @@
+{% extends "base.html" %}{% load static %}
+{% block styles %}
+<script src="{% static 'management-theme.js' %}" data-theme-key="rovuma-portal-theme" data-default-theme="light"></script>
+<link rel="stylesheet" href="{% static 'management.css' %}">
+<link rel="stylesheet" href="{% static 'catalogue.css' %}">
+{% endblock %}
+{% block body_class %}portal reader-portal{% endblock %}
+{% block header %}
+<a class="brand" href="{% url 'portal' %}"><span>Biblioteca Rovuma</span></a>
+{% if nav_student or nav_editor %}
+<form id="portal-search" class="management-search" action="{% url 'catalogue' %}" method="get" role="search" aria-label="Pesquisar no catálogo">
+  <label for="home-q" class="sr-only">Pesquisar obras</label>
+  <input id="home-q" name="q" type="search" maxlength="200" value="{{ q|default:'' }}" placeholder="Título, autor, assunto ou identificador">
+  <button type="submit" aria-label="Pesquisar">{% include "management/icon.html" with icon="search" %}</button>
+</form>
+{% endif %}
+<div class="management-account">
+  {% include 'theme_toggle.html' %}
+  {% include 'logout_form.html' %}
+</div>
+{% endblock %}
+{% block layout_start %}
+<div class="wrap management-shell">
+  <aside class="management-sidebar">
+    <div class="management-rail">
+      <a class="management-mark" href="{% url 'portal' %}" aria-label="Biblioteca Rovuma" title="Biblioteca Rovuma">{% include 'brand_icon.html' %}</a>
+      {% with route=request.resolver_match.url_name %}
+      <nav class="management-navigation" aria-label="Portal da biblioteca">
+        <a href="{% url 'portal' %}" title="Início"{% if route == 'portal' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="home" %}<span>Início</span></a>
+        {% if nav_student or nav_editor %}<a href="{% url 'catalogue' %}" title="Catálogo"{% if route == 'catalogue' or route == 'work' or route == 'reader' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="books" %}<span>Catálogo</span></a>{% endif %}
+        {% if nav_student %}<a href="{% url 'library' %}" title="Minhas leituras"{% if route == 'library' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="history" %}<span>Minhas leituras</span></a>{% endif %}
+        {% if nav_student or nav_editor %}<a href="{% url 'profile' %}" title="Perfil"{% if route == 'profile' or route == 'password_change' or route == 'password_change_done' %} aria-current="page"{% endif %}>{% include "management/icon.html" with icon="people" %}<span>Perfil</span></a>{% endif %}
+        {% if nav_editor or nav_credential or nav_correct or nav_audit %}<a href="{% url 'management' %}" title="Painel administrativo">{% include "management/icon.html" with icon="key" %}<span class="sr-only">Painel administrativo</span><span class="portal-nav-caption" aria-hidden="true">Administração</span></a>{% endif %}
+      </nav>
+      {% endwith %}
+    </div>
+  </aside>
+{% endblock %}
+{% block main_class %}main management-content portal-content{% endblock %}
+{% block layout_end %}</div>{% endblock %}
+{% block footer %}{% endblock %}

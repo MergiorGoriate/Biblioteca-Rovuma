@@ -1,17 +1,10 @@
-{% extends "base.html" %}{% load static %}
+{% extends "portal_base.html" %}{% load static %}
 {% block title %}Portal da biblioteca · Biblioteca Rovuma{% endblock %}
-{% block styles %}<link rel="stylesheet" href="{% static 'catalogue.css' %}">{% endblock %}
-{% block main_class %}wrap main portal-content{% endblock %}
 {% block content %}
 <section class="portal-hero">
   <div class="portal-hero-content">
     <h1>A sua biblioteca</h1>
     <p>Pesquise obras digitais e encontre os livros disponíveis para consulta na biblioteca.</p>
-    <form class="search portal-search" action="{% url 'catalogue' %}" method="get">
-      <label class="sr-only" for="home-q">Pesquisar obras</label>
-      <input id="home-q" name="q" type="search" placeholder="Título, autor, assunto ou identificador">
-      <button class="primary">Pesquisar</button>
-    </form>
     <nav class="portal-shortcuts" aria-label="Formatos do acervo">
       <a href="{% url 'catalogue' %}?formato=digital">Leitura digital <span aria-hidden="true">↗</span></a>
       <a href="{% url 'catalogue' %}?formato=fisico">Consulta local <span aria-hidden="true">↗</span></a>

@@ -1,7 +1,7 @@
 html[data-management-theme="dark"] { background: #101012; }
 html[data-management-theme="light"] { background: #f5f6f9; }
 
-.management {
+:is(.management, .reader-portal) {
   color-scheme: dark;
   --paper: #101012;
   --ink: #f5f4f6;
@@ -37,7 +37,7 @@ html[data-management-theme="light"] { background: #f5f6f9; }
   font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-[data-management-theme="light"] .management {
+[data-management-theme="light"] :is(.management, .reader-portal) {
   color-scheme: light;
   --paper: #f5f6f9;
   --ink: #1d2433;
@@ -67,20 +67,20 @@ html[data-management-theme="light"] { background: #f5f6f9; }
   --admin-draft-ink: #684711;
 }
 
-.management .wrap { width: auto; margin: 0; }
-.management .site-header {
+:is(.management, .reader-portal) .wrap { width: auto; margin: 0; }
+:is(.management, .reader-portal) .site-header {
   background: var(--white);
   border: 1px solid var(--line);
   border-radius: var(--round);
 }
-.management .header-flex { min-height: 68px; padding: 10px 16px; gap: 12px; }
-.management .brand { font-size: .96rem; }
+:is(.management, .reader-portal) .header-flex { min-height: 68px; padding: 10px 16px; gap: 12px; }
+:is(.management, .reader-portal) .brand { font-size: .96rem; }
 .management-account { display: flex; align-items: center; gap: 6px 10px; margin-left: auto; }
 .management-account .secondary { gap: 7px; }
 .management-account .plain { padding-inline: 9px; color: var(--ink); }
 .management-account .plain:hover { background: var(--pale); }
 .management-theme-toggle { gap: 7px; border-color: var(--line); }
-.management .management-theme-toggle[hidden], .theme-moon,
+:is(.management, .reader-portal) .management-theme-toggle[hidden], .theme-moon,
 [data-management-theme="light"] .theme-sun { display: none; }
 [data-management-theme="light"] .theme-moon { display: inline-flex; }
 .management-search {
@@ -89,7 +89,7 @@ html[data-management-theme="light"] { background: #f5f6f9; }
   max-width: 920px;
   min-width: 0;
 }
-.management .management-search input {
+:is(.management, .reader-portal) .management-search input {
   min-height: 44px;
   padding: 8px 52px 8px 16px;
   background: var(--admin-search-surface);
@@ -110,18 +110,18 @@ html[data-management-theme="light"] { background: #f5f6f9; }
   border-radius: 24px;
 }
 .management-search button:hover { background: var(--admin-search-hover); }
-.management input:not([type=checkbox]), .management select, .management textarea {
+:is(.management, .reader-portal) input:not([type=checkbox]), :is(.management, .reader-portal) select, :is(.management, .reader-portal) textarea {
   background: var(--admin-input);
   color: var(--ink);
 }
-.management input::placeholder, .management textarea::placeholder { color: var(--muted); opacity: 1; }
-.management .primary { color: var(--admin-accent-ink); background: var(--admin-accent); border-color: var(--admin-accent); }
-.management .primary:hover { background: var(--admin-accent-hover); border-color: var(--admin-accent-hover); }
-.management .secondary { color: var(--ink); background: var(--pale); }
-.management .secondary:hover { background: var(--soft-blue); }
-.management .notice.error { background: var(--admin-danger-surface); border-color: var(--admin-danger-border); }
-.management .notice.error, .management .errorlist { color: var(--admin-danger-ink); }
-.management .skip:focus { color: #173047; }
+:is(.management, .reader-portal) input::placeholder, :is(.management, .reader-portal) textarea::placeholder { color: var(--muted); opacity: 1; }
+:is(.management, .reader-portal) .primary { color: var(--admin-accent-ink); background: var(--admin-accent); border-color: var(--admin-accent); }
+:is(.management, .reader-portal) .primary:hover { background: var(--admin-accent-hover); border-color: var(--admin-accent-hover); }
+:is(.management, .reader-portal) .secondary { color: var(--ink); background: var(--pale); }
+:is(.management, .reader-portal) .secondary:hover { background: var(--soft-blue); }
+:is(.management, .reader-portal) .notice.error { background: var(--admin-danger-surface); border-color: var(--admin-danger-border); }
+:is(.management, .reader-portal) .notice.error, :is(.management, .reader-portal) .errorlist { color: var(--admin-danger-ink); }
+:is(.management, .reader-portal) .skip:focus { color: #173047; }
 
 .admin-icon {
   width: 18px;
@@ -265,15 +265,15 @@ html[data-management-theme="light"] { background: #f5f6f9; }
 .admin-collection-empty p { max-width: 38ch; margin: 0; color: var(--muted); }
 
 @media (min-width: 741px) {
-  .management {
+  :is(.management, .reader-portal) {
     display: grid;
     grid-template-columns: var(--admin-rail-width) minmax(0, 1fr);
     grid-template-rows: max-content 1fr;
     gap: var(--admin-gap);
     padding: var(--admin-gap);
   }
-  .management .site-header { grid-column: 2; }
-  .management .site-header .brand { display: none; }
+  :is(.management, .reader-portal) .site-header { grid-column: 2; }
+  :is(.management, .reader-portal) .site-header .brand { display: none; }
   .management-shell { display: contents; }
   .management-sidebar {
     grid-area: 1 / 1 / span 2;
@@ -314,8 +314,8 @@ html[data-management-theme="light"] { background: #f5f6f9; }
 }
 
 @media (max-width: 740px) {
-  .management { padding: 10px; }
-  .management .header-flex { min-height: auto; gap: 8px; }
+  :is(.management, .reader-portal) { padding: 10px; }
+  :is(.management, .reader-portal) .header-flex { min-height: auto; gap: 8px; }
   .management-search { order: 1; flex-basis: 100%; }
   .management-sidebar { margin-block: 10px; }
   .management-rail { margin-top: 8px; }
@@ -327,7 +327,7 @@ html[data-management-theme="light"] { background: #f5f6f9; }
 }
 
 @media (max-width: 580px) {
-  .management .header-flex { padding-inline: 12px; }
+  :is(.management, .reader-portal) .header-flex { padding-inline: 12px; }
   .management-account { gap: 4px; }
   .management-account .plain, .management-account .secondary { padding-inline: 7px; font-size: .79rem; }
   .management-account .secondary .admin-icon, .management-theme-toggle .theme-label { display: none; }

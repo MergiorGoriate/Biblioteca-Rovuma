@@ -1,4 +1,4 @@
-{% extends editorial|yesno:"management/base.html,base.html" %}{% load static %}{% block content %}
+{% extends editorial|yesno:"management/base.html,portal_base.html" %}{% load static %}{% block content %}
 {% if editorial %}<a class="back" href="{% url 'manage_work' work.pk %}#documento-{{ version.pk }}">← Gestão da obra</a>
 {% else %}<a class="back" href="{% url 'work' work.pk %}">← Dados da obra</a>{% endif %}
 <div class="section-head"><div><p class="eyebrow">{{ version.get_access_mode_display }}</p><h1>{{ work.title }}</h1></div>

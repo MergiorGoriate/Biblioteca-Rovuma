@@ -14,11 +14,7 @@
 </form>
 {% endif %}
 <div class="management-account">
-  <button type="button" id="management-theme-toggle" class="plain management-theme-toggle" aria-label="Activar modo claro" title="Activar modo claro" hidden>
-    <span class="theme-sun">{% include "management/icon.html" with icon="sun" %}</span>
-    <span class="theme-moon">{% include "management/icon.html" with icon="moon" %}</span>
-    <span class="theme-label" aria-hidden="true">Claro</span>
-  </button>
+  {% include 'theme_toggle.html' %}
   {% if nav_student or nav_editor %}<a class="secondary" href="{% url 'portal' %}">{% include "management/icon.html" with icon="external" %}Abrir portal</a>{% endif %}
   {% include 'logout_form.html' %}
 </div>

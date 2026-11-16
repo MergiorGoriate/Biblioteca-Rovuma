@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% block content %}<section class="panel form-panel"><h1>Perfil</h1>
+{% extends "portal_base.html" %}{% block content %}<section class="panel form-panel"><h1>Perfil</h1>
 <dl><dt>Número institucional</dt><dd>{{ user.institutional_number }}</dd><dt>Credenciamento válido até</dt><dd>{{ user.credential_until|date:"d/m/Y" }}</dd><dt>Autenticação</dt><dd>{{ user.get_identity_source_display }}</dd></dl>
 {% if user.identity_source == 'local' %}<a class="primary" href="{% url 'password_change' %}">Alterar senha</a>{% endif %}
 </section>{% endblock %}

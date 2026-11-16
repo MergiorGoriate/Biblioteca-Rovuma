@@ -63,7 +63,7 @@ def portal(request):
 @require(allowed)
 def catalogue(request):
     qs = visible()
-    q = request.GET.get("q", "").strip()
+    q = request.GET.get("q", "").strip()[:200]
     kind = request.GET.get("tipo", "")
     language = request.GET.get("idioma", "")
     year = request.GET.get("ano", "")

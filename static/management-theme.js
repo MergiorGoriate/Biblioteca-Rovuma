@@ -1,4 +1,5 @@
-const themeStorageKey = "rovuma-admin-theme";
+const themeStorageKey = document.currentScript.dataset.themeKey || "rovuma-admin-theme";
+const defaultTheme = document.currentScript.dataset.defaultTheme || "dark";
 const themeRoot = document.documentElement;
 
 function applyManagementTheme(theme) {
@@ -6,9 +7,10 @@ function applyManagementTheme(theme) {
 }
 
 try {
-  applyManagementTheme(localStorage.getItem(themeStorageKey) === "light" ? "light" : "dark");
+  const savedTheme = localStorage.getItem(themeStorageKey);
+  applyManagementTheme(["light", "dark"].includes(savedTheme) ? savedTheme : defaultTheme);
 } catch {
-  applyManagementTheme("dark");
+  applyManagementTheme(defaultTheme);
 }
 
 window.addEventListener("DOMContentLoaded", () => {
