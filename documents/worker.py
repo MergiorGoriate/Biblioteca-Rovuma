@@ -97,7 +97,7 @@ def pdf_pages(path):
         if reader.is_encrypted:
             raise Rejected("O PDF está protegido por senha.")
         root = reader.root_object
-        forbidden = {"/JavaScript", "/EmbeddedFiles", "/JS", "/Launch", "/RichMedia", "/AA", "/OpenAction", "/XFA"}
+        forbidden = {"/JavaScript", "/EmbeddedFiles", "/JS", "/Launch", "/RichMedia", "/AA", "/XFA"}
         stack, seen, total = [root], set(), 0
         from pypdf.generic import ArrayObject, DictionaryObject, IndirectObject
         while stack:
@@ -112,6 +112,16 @@ def pdf_pages(path):
             if total > 1_000_000:
                 raise Rejected("O PDF ultrapassa o limite de complexidade.")
             if isinstance(item, DictionaryObject):
+                if "/OpenAction" in item:
+                    opening = item["/OpenAction"]
+                    # LibreOffice exports an internal destination to set the initial view.
+                    destination = opening
+                    if isinstance(opening, DictionaryObject) and opening.get("/S") == "/GoTo" and "/Next" not in opening:
+                        destination = opening.get("/D")
+                        if isinstance(destination, IndirectObject):
+                            destination = destination.get_object()
+                    if not isinstance(destination, ArrayObject):
+                        raise Rejected("O PDF contém uma acção de abertura incompatível.")
                 if forbidden.intersection(item) or any(item.get(key) in forbidden for key in ("/S", "/Subtype")
                                                              if isinstance(item.get(key), str)):
                     raise Rejected("O PDF contém acções ou componentes activos.")
