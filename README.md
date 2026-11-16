@@ -30,7 +30,7 @@ Para executar os testes use `python manage.py test`. Uma instalação com Postgr
 
 - [Instalação, actualização e recuperação](docs/operacoes.md)
 - [Manual breve do bibliotecário](docs/bibliotecario.md)
-- [Diagrama de arquitectura](docs/arquitectura.svg)
+- [Arquitectura de referência e estado da instalação](docs/arquitectura.md)
 - [Modelo de dados](docs/modelo-de-dados.md)
 - [Validação efectuada e pendências](docs/validacao.md)
 
