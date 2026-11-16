@@ -4,7 +4,6 @@
   --admin-accent-hover: #bed8ff;
   --admin-accent-ink: #11274c;
   --portal-cover-mat: #242a37;
-  padding-block-start: 0;
 }
 [data-management-theme="light"] .reader-portal {
   --admin-accent: #254c8b;
@@ -21,27 +20,6 @@ html:has(.reader-portal) {
 html[data-management-theme="dark"]:has(.reader-portal) { scrollbar-color: #696971 #141416; }
 html:has(.catalogue-page) { scroll-padding-block-start: 155px; }
 .reader-portal .management-shell { display: contents; }
-:is(.portal.reader-portal) .site-header {
-  position: sticky;
-  inset-block-start: 0;
-  z-index: 4;
-  flex: 0 0 auto;
-  isolation: isolate;
-  padding-block: var(--admin-gap);
-  background: var(--paper);
-  border: 0;
-  border-radius: 0;
-}
-.reader-portal .site-header::before {
-  content: "";
-  position: absolute;
-  inset: var(--admin-gap) 0;
-  z-index: -1;
-  border: 1px solid var(--line);
-  border-radius: var(--round);
-  background: var(--white);
-  pointer-events: none;
-}
 .reader-portal .management-content {
   min-height: 0;
   padding-top: clamp(18px, 3vw, 34px);
@@ -134,15 +112,9 @@ html:has(.catalogue-page) { scroll-padding-block-start: 155px; }
   .portal-hero { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
   .portal-book-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
-@media (min-width: 741px) {
-  :is(.portal.reader-portal) { row-gap: 0; padding-block-start: 0; }
-  .reader-portal .management-sidebar { margin-block-start: var(--admin-gap); }
-}
 @media (max-width: 740px) {
-  :is(.portal.reader-portal) { --admin-gap: 10px; padding-block-start: 0; }
   html:has(.reader-portal) { scroll-padding-block-start: 126px; }
   html:has(.catalogue-page) { scroll-padding-block-start: 268px; }
-  .reader-portal .management-sidebar { margin-block-start: 0; }
   .reader-portal .management-rail { padding: 5px; margin: 0; }
   .reader-portal .management-navigation { display: flex; flex-wrap: wrap; gap: 3px; }
   .reader-portal .management-navigation a {

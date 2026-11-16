@@ -68,10 +68,29 @@ html[data-management-theme="light"] { background: #f5f6f9; }
 }
 
 :is(.management, .reader-portal) .wrap { width: auto; margin: 0; }
-:is(.management, .reader-portal) .site-header {
-  background: var(--white);
+html:has(body.management) { scroll-padding-block-start: 112px; }
+
+/* The solid backdrop keeps scrolling content out of the gaps around the toolbar. */
+:is(.management, .portal.reader-portal) .site-header {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 4;
+  flex: 0 0 auto;
+  isolation: isolate;
+  padding-block: var(--admin-gap);
+  background: var(--paper);
+  border: 0;
+  border-radius: 0;
+}
+:is(.management, .reader-portal) .site-header::before {
+  content: "";
+  position: absolute;
+  inset: var(--admin-gap) 0;
+  z-index: -1;
   border: 1px solid var(--line);
   border-radius: var(--round);
+  background: var(--white);
+  pointer-events: none;
 }
 :is(.management, .reader-portal) .header-flex { min-height: 68px; padding: 10px 16px; gap: 12px; }
 :is(.management, .reader-portal) .brand { font-size: .96rem; }
@@ -269,8 +288,8 @@ html[data-management-theme="light"] { background: #f5f6f9; }
     display: grid;
     grid-template-columns: var(--admin-rail-width) minmax(0, 1fr);
     grid-template-rows: max-content 1fr;
-    gap: var(--admin-gap);
-    padding: var(--admin-gap);
+    column-gap: var(--admin-gap);
+    padding: 0 var(--admin-gap) var(--admin-gap);
   }
   :is(.management, .reader-portal) .site-header { grid-column: 2; }
   :is(.management, .reader-portal) .site-header .brand { display: none; }
@@ -278,6 +297,7 @@ html[data-management-theme="light"] { background: #f5f6f9; }
   .management-sidebar {
     grid-area: 1 / 1 / span 2;
     align-self: start;
+    margin-block-start: var(--admin-gap);
   }
   .management-content { grid-area: 2 / 2; }
   .management-rail {
@@ -313,11 +333,18 @@ html[data-management-theme="light"] { background: #f5f6f9; }
   .management-menu-group { padding-top: 3px; }
 }
 
+@media (max-width: 1024px) {
+  html:has(body.management) { scroll-padding-block-start: 158px; }
+}
+
 @media (max-width: 740px) {
-  :is(.management, .reader-portal) { padding: 10px; }
+  :is(.management, .reader-portal) {
+    --admin-gap: 10px;
+    padding: 0 var(--admin-gap) var(--admin-gap);
+  }
   :is(.management, .reader-portal) .header-flex { min-height: auto; gap: 8px; }
   .management-search { order: 1; flex-basis: 100%; }
-  .management-sidebar { margin-block: 10px; }
+  .management-sidebar { margin-block-end: var(--admin-gap); }
   .management-rail { margin-top: 8px; }
   .management-mark { display: none; }
   #management-menu-toggle { width: 100%; justify-content: start; gap: 9px; }

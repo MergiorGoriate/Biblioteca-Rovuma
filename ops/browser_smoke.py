@@ -137,6 +137,24 @@ with sync_playwright() as playwright:
         page.reload()
         expect(page.locator("body")).to_have_css("color-scheme", "light")
         expect(page.get_by_role("button", name="Activar modo escuro")).to_be_visible()
+        if not mobile:
+            page.set_viewport_size({"width": width, "height": 620})
+        page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
+        assert page.evaluate("window.scrollY") > 0
+        expect(header).to_be_in_viewport(ratio=1)
+        assert header.evaluate("""bar => {
+            const box = bar.getBoundingClientRect();
+            return Math.abs(box.top) <= 1
+                && getComputedStyle(bar).backgroundColor === getComputedStyle(document.body).backgroundColor
+                && bar.contains(document.elementFromPoint(box.left + box.width / 2, 2));
+        }""")
+        expect(header.get_by_label("Pesquisar por título")).to_be_in_viewport(ratio=1)
+        expect(header.get_by_role("button", name="Activar modo escuro")).to_be_in_viewport(ratio=1)
+        expect(header.get_by_role("link", name="Abrir portal")).to_be_in_viewport(ratio=1)
+        expect(header.get_by_role("button", name="Sair", exact=True)).to_be_in_viewport(ratio=1)
+        page.evaluate("window.scrollTo(0, 0)")
+        if not mobile:
+            page.set_viewport_size({"width": width, "height": height})
         navigation = page.get_by_role("navigation", name="Navegação administrativa")
         menu = page.get_by_role("button", name="Menu administrativo")
         if mobile:
