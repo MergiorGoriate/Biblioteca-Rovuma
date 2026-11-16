@@ -23,26 +23,25 @@ with sync_playwright() as playwright:
         expect(page.get_by_role("heading", name="Explore o acervo")).to_be_visible()
         header = page.get_by_role("banner")
         content = page.get_by_role("main")
-        initial_top = header.evaluate("bar => bar.getBoundingClientRect().top")
-        content.evaluate("panel => panel.scrollTop = panel.scrollHeight")
+        page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
         expect(header).to_be_in_viewport(ratio=1)
-        assert content.evaluate("panel => panel.scrollTop") > 0
-        assert page.evaluate("window.scrollY") == 0
-        assert content.evaluate("""panel => {
-            const header = document.querySelector('header.site-header').getBoundingClientRect();
-            const box = panel.getBoundingClientRect();
-            return box.top >= header.bottom
-                && !panel.contains(document.elementFromPoint(box.left + box.width / 2, box.top - 2));
+        assert page.evaluate("window.scrollY") > 0
+        assert content.evaluate("panel => panel.scrollHeight === panel.clientHeight")
+        assert header.evaluate("""bar => {
+            const box = bar.getBoundingClientRect();
+            return Math.abs(box.top) <= 1
+                && bar.contains(document.elementFromPoint(box.left + box.width / 2, 2));
         }""")
-        assert abs(header.evaluate("bar => bar.getBoundingClientRect().top") - initial_top) <= 1
+        expect(page.locator("html")).to_have_css("scrollbar-width", "thin")
         expect(page.get_by_role("button", name="Pesquisar", exact=True)).to_be_in_viewport(ratio=1)
         expect(page.get_by_role("button", name="Sair", exact=True)).to_be_in_viewport(ratio=1)
         expect(page.get_by_role("button", name="Activar modo escuro")).to_be_in_viewport(ratio=1)
-        content.evaluate("panel => panel.scrollTop = 0")
+        page.evaluate("window.scrollTo(0, 0)")
         content.focus()
         content.press("PageDown")
-        page.wait_for_function("document.querySelector('main').scrollTop > 0")
-        content.evaluate("panel => panel.scrollTop = 0")
+        page.wait_for_function("window.scrollY > 0")
+        content.press("Home")
+        page.wait_for_function("window.scrollY === 0")
         portal_nav = page.get_by_role("navigation", name="Portal da biblioteca")
         expect(portal_nav.get_by_role("link", name="Início", exact=True)).to_have_attribute("aria-current", "page")
         expect(portal_nav.get_by_role("link", name="Painel administrativo")).to_have_count(0)
@@ -58,11 +57,9 @@ with sync_playwright() as playwright:
         expect(filters.get_by_label("Tipo", exact=True)).to_be_visible()
         expect(filters.get_by_label("Idioma", exact=True)).to_be_visible()
         expect(filters.get_by_label("Ano", exact=True)).to_be_visible()
-        content.evaluate("panel => panel.scrollTop = panel.scrollHeight")
-        assert page.evaluate("window.scrollY") == 0
-        assert content.evaluate("panel => panel.getBoundingClientRect().top") >= header.evaluate(
-            "bar => bar.getBoundingClientRect().bottom"
-        )
+        page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
+        assert content.evaluate("panel => panel.scrollHeight === panel.clientHeight")
+        expect(page.locator("html")).to_have_css("scrollbar-color", "rgb(105, 105, 113) rgb(20, 20, 22)")
         expect(filters).to_be_in_viewport(ratio=1)
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         filters.get_by_label("Formato", exact=True).select_option("fisico")
