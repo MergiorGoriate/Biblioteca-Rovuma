@@ -2,10 +2,7 @@
 {% block title %}Gestão do acervo · Biblioteca Rovuma{% endblock %}
 {% block content %}
 <header class="admin-page-heading">
-  <div>
-    <h1>Gestão do acervo</h1>
-  </div>
-  <a class="primary" href="{% url 'new_work' %}">{% include "management/icon.html" with icon="plus" %}Nova obra</a>
+  <h1>Gestão do acervo</h1>
 </header>
 
 <section class="admin-collection" aria-labelledby="collection-heading">
@@ -14,24 +11,17 @@
     <span class="admin-result-count">{{ page.paginator.count }} obra{{ page.paginator.count|pluralize }}</span>
   </header>
 
-  <form class="admin-collection-filters" method="get" role="search" aria-label="Pesquisar no acervo">
-    <div>
-      <label for="collection-query">Pesquisar por título</label>
-      <div class="admin-search-field">
-        {% include "management/icon.html" with icon="search" %}
-        <input id="collection-query" type="search" name="q" value="{{ q }}" maxlength="150" placeholder="Introduza o título da obra">
-      </div>
-    </div>
+  <div class="admin-collection-filters">
     <div>
       <label for="collection-state">Estado</label>
-      <select id="collection-state" name="estado">
+      <select id="collection-state" name="estado" form="admin-search">
         <option value="">Todos os estados</option>
         {% for value, label in states %}<option value="{{ value }}"{% if state == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
       </select>
     </div>
-    <button class="secondary" type="submit">Filtrar</button>
+    <button class="secondary" type="submit" form="admin-search">Filtrar</button>
     {% if q or state %}<a class="plain" href="{% url 'collection' %}">Limpar filtros</a>{% endif %}
-  </form>
+  </div>
 
   {% if page.object_list %}
   <table class="admin-works-table" aria-labelledby="collection-heading">

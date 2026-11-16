@@ -56,6 +56,8 @@ with sync_playwright() as playwright:
         page.locator("#id_password").fill(os.environ["DEMO_STAFF_PASSWORD"])
         page.get_by_role("button", name="Entrar").click()
         expect(page.get_by_role("heading", name="Painel administrativo")).to_be_visible()
+        assert page.locator("body").evaluate("body => getComputedStyle(body).colorScheme") == "dark"
+        assert page.locator("footer.site-footer").count() == 0
         navigation = page.get_by_role("navigation", name="Navegação administrativa")
         menu = page.get_by_role("button", name="Menu administrativo")
         if mobile:
@@ -76,7 +78,14 @@ with sync_playwright() as playwright:
         navigation.get_by_role("link", name="Obras e edições").click()
         expect(page.get_by_role("heading", name="Gestão do acervo")).to_be_visible()
         expect(page.get_by_text("1 obra", exact=True)).to_be_visible()
-        expect(page.get_by_role("link", name="Nova obra")).to_be_visible()
+        if mobile:
+            menu.click()
+        page.get_by_role("link", name="Nova obra", exact=True).click()
+        expect(page.get_by_role("heading", name="Dados da obra", exact=True)).to_be_visible()
+        page.get_by_label("Pesquisar por título").fill("investigação")
+        page.get_by_role("button", name="Pesquisar obras", exact=True).click()
+        expect(page.get_by_text("1 obra", exact=True)).to_be_visible()
+        expect(page.get_by_label("Pesquisar por título")).to_have_value("investigação")
         page.get_by_label("Pesquisar por título").fill("título inexistente")
         page.get_by_label("Estado", exact=True).select_option("published")
         page.get_by_role("button", name="Filtrar", exact=True).click()

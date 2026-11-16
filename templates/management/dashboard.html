@@ -4,7 +4,6 @@
 <header class="dashboard-heading">
   <h1>Painel administrativo</h1>
   <div class="actions">
-    {% if nav_editor %}<a class="primary" href="{% url 'new_work' %}">Nova obra</a>{% endif %}
     {% if nav_credential %}<a class="secondary" href="{% url 'imports' %}">Importar estudantes</a>{% endif %}
   </div>
 </header>
