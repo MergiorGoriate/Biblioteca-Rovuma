@@ -3,7 +3,7 @@
 {% block content %}
 <a class="back" href="{% url 'catalogue' %}">← Catálogo</a>
 <article class="panel work-detail"><img loading="lazy" src="{% url 'cover' work.pk %}" width="200" height="270" alt=""><div>
-<p class="eyebrow">{{ work.get_kind_display }} · {{ work.language }}</p><h1>{{ work.title }}</h1>
+<p class="eyebrow">{{ work.get_kind_display }} · {{ work.language }}{% if work.is_demo %} · Demonstração{% endif %}</p><h1>{{ work.title }}</h1>
 {% if work.subtitle %}<p class="lead">{{ work.subtitle }}</p>{% endif %}
 {% if work.authors.all %}<p class="muted">{{ work.authors.all|join:", " }}</p>{% endif %}
 {% if work.summary %}<div>{{ work.summary|linebreaks }}</div>{% endif %}

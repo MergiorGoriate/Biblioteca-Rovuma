@@ -22,6 +22,7 @@ jobs:
           export DEMO_STAFF_PASSWORD="$(openssl rand -hex 24)"
           python manage.py migrate --noinput
           python manage.py demo_rovuma
+          python manage.py seed_sample_books --confirm-test-environment
           python manage.py runserver 127.0.0.1:8000 --noreload > /tmp/rovuma-browser.log 2>&1 &
           curl --silent --fail --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8000/entrar/ > /dev/null
           python ops/browser_smoke.py

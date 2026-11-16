@@ -41,7 +41,7 @@
             <span class="admin-work-icon">{% include "management/icon.html" with icon="file" %}</span>
             <div>
               <a href="{% url 'manage_work' work.pk %}">{{ work.title }}</a>
-              <span class="muted">{{ work.get_kind_display }} · {{ work.language }}</span>
+              <span class="muted">{{ work.get_kind_display }} · {{ work.language }}{% if work.is_demo %} · Demonstração{% endif %}</span>
             </div>
           </div>
         </th>

@@ -30,6 +30,13 @@ def visible():
     )
 
 
+def with_formats(works):
+    return works.annotate(
+        digital=Exists(Version.objects.filter(document__edition__work=OuterRef("pk"), state=Version.State.PUBLISHED)),
+        physical=Exists(Copy.objects.filter(edition__work=OuterRef("pk"), state=Copy.State.LOCAL)),
+    )
+
+
 def available_readings(model, user):
     return model.objects.filter(user=user, version__state=Version.State.PUBLISHED,
         version__document__edition__work__state=Work.State.PUBLISHED
@@ -48,7 +55,8 @@ def portal(request):
     if not allowed(request.user):
         return render(request, "staff_home.html")
     recent = available_readings(Progress, request.user).order_by("-updated")[:6] if student(request.user) else []
-    return render(request, "home.html", {"recent": recent})
+    featured = with_formats(visible()).order_by("is_demo", "-modified", "-pk")[:4]
+    return render(request, "home.html", {"recent": recent, "featured": featured})
 
 
 @require(allowed)
@@ -67,10 +75,7 @@ def catalogue(request):
     if language: qs = qs.filter(language=language)
     if len(year) <= 4 and year.isascii() and year.isdigit():
         qs = qs.filter(editions__year=int(year))
-    qs = qs.annotate(
-        digital=Exists(Version.objects.filter(document__edition__work=OuterRef("pk"), state=Version.State.PUBLISHED)),
-        physical=Exists(Copy.objects.filter(edition__work=OuterRef("pk"), state=Copy.State.LOCAL)),
-    )
+    qs = with_formats(qs)
     if fmt in {"digital", "ambos"}:
         qs = qs.filter(digital=True)
     if fmt in {"fisico", "ambos"}:

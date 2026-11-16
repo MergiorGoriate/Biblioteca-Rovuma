@@ -1,4 +1,5 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load static %}
+{% block styles %}<link rel="stylesheet" href="{% static 'catalogue.css' %}">{% endblock %}
 {% block title %}Catálogo · Biblioteca Rovuma{% endblock %}
 {% block content %}
 <div class="section-head"><div><p class="eyebrow">Acervo</p><h1>Catálogo da biblioteca</h1></div></div>
@@ -11,12 +12,7 @@
 <button class="primary">Aplicar filtros</button><a href="{% url 'catalogue' %}">Limpar</a>
 </form>
 <section class="section"><div class="section-head"><h2>Obras</h2><span class="muted">{{ page.paginator.count }} resultado{{ page.paginator.count|pluralize }}</span></div>
-<div class="grid">{% for work in page %}
-<article class="work-card"><a class="cover" href="{% url 'work' work.pk %}" aria-hidden="true" tabindex="-1"><img loading="lazy" width="400" height="280" src="{% url 'cover' work.pk %}" alt=""></a><div class="card-body">
-<p class="eyebrow">{{ work.get_kind_display }}</p><h3><a href="{% url 'work' work.pk %}">{{ work.title }}</a></h3>
-{% if work.authors.all %}<p class="muted">{{ work.authors.all|join:", " }}</p>{% endif %}
-<div class="tags">{% if work.digital %}<span>Digital</span>{% endif %}{% if work.physical %}<span>Consulta local</span>{% endif %}</div>
-</div></article>{% empty %}<div class="empty">Nenhuma obra corresponde à pesquisa.</div>{% endfor %}</div>
+<div class="portal-book-grid">{% for work in page %}{% include 'book_card.html' %}{% empty %}<div class="empty">Nenhuma obra corresponde à pesquisa.</div>{% endfor %}</div>
 {% include "pagination.html" %}
 <p class="small muted">O acervo físico continua em actualização.</p></section>
 {% endblock %}
