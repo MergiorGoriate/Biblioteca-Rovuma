@@ -1,30 +1,80 @@
 {% extends "management/base.html" %}
 {% block title %}Exemplares físicos · Biblioteca Rovuma{% endblock %}
 {% block content %}
-<div class="section-head">
+<header class="admin-page-heading">
   <h1>Exemplares físicos</h1>
-  <div class="actions"><a class="secondary" href="{% url 'collection' %}">Abrir obras e edições</a></div>
-</div>
-<section class="panel">
-  <form class="dashboard-filter" method="get">
-    <label>Inventário, obra ou localização<input name="q" value="{{ q }}" maxlength="150"></label>
-    <label>Estado<select name="estado"><option value="">Todos</option>
-    {% for value, label in states %}<option value="{{ value }}"{% if state == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
-    </select></label>
-    <button class="secondary">Filtrar</button>
-  </form>
-  {% for copy in page %}
-  <article class="row">
-    <div class="inventory-record break">
-      <h2 class="queue-heading">{{ copy.edition.work.title }}</h2>
-      <p class="small muted">{{ copy.edition.label }} · {{ copy.inventory }}</p>
-      <p>{{ copy.location.name }}{% if copy.location.placement %} · {{ copy.location.placement }}{% endif %}</p>
-      <span class="tag">{{ copy.get_state_display }}</span>
-      {% if copy.condition %}<span class="small muted">{{ copy.condition }}</span>{% endif %}
+  <a class="secondary admin-action" href="{% url 'collection' %}">{% include "management/icon.html" with icon="books" %}Abrir obras e edições</a>
+</header>
+
+<section class="admin-collection admin-inventory" aria-labelledby="inventory-heading">
+  <header class="admin-collection-header">
+    <h2 id="inventory-heading">Inventário</h2>
+    <span class="admin-result-count">{{ page.paginator.count }} exemplar{{ page.paginator.count|pluralize:",es" }}</span>
+  </header>
+
+  <form class="admin-collection-filters admin-inventory-filters" method="get" role="search" aria-label="Pesquisar exemplares">
+    <div>
+      <label for="inventory-query">Inventário, obra ou localização</label>
+      <div class="admin-inventory-search-field">
+        {% include "management/icon.html" with icon="search" %}
+        <input type="search" id="inventory-query" name="q" value="{{ q }}" maxlength="150">
+      </div>
     </div>
-    <a class="secondary" href="{% url 'edit_related' 'exemplar' copy.edition_id copy.pk %}">Editar exemplar</a>
+    <div>
+      <label for="inventory-state">Estado</label>
+      <select id="inventory-state" name="estado">
+        <option value="">Todos os estados</option>
+        {% for value, label in states %}<option value="{{ value }}"{% if state == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="actions admin-inventory-filter-actions">
+      <button class="secondary" type="submit">Filtrar</button>
+      {% if q or state %}<a class="plain" href="{% url 'inventory' %}">Limpar filtros</a>{% endif %}
+    </div>
+  </form>
+
+  {% if page.object_list %}
+  <div class="admin-inventory-columns" aria-hidden="true">
+    <span>Obra e edição</span><span>Inventário</span><span>Localização</span><span>Estado</span><span>Acção</span>
+  </div>
+  {% for copy in page %}
+  <article class="admin-inventory-row" aria-labelledby="inventory-entry-{{ copy.pk }}">
+    <div class="admin-inventory-work">
+      <span class="admin-work-icon">{% include "management/icon.html" with icon="box" %}</span>
+      <div>
+        <h3 id="inventory-entry-{{ copy.pk }}"><a class="admin-text-link" href="{% url 'manage_work' copy.edition.work_id %}">{{ copy.edition.work.title }}</a></h3>
+        <p class="small muted">{{ copy.edition.label }}</p>
+      </div>
+    </div>
+    <div class="admin-inventory-field">
+      <span class="sr-only admin-inventory-label">Inventário</span>
+      <code>{{ copy.inventory }}</code>
+    </div>
+    <div class="admin-inventory-field admin-inventory-location">
+      <span class="sr-only admin-inventory-label">Localização</span>
+      <p>{{ copy.location.name }}</p>
+      {% if copy.location.placement %}<p class="small muted">{{ copy.location.placement }}</p>{% endif %}
+    </div>
+    <div class="admin-inventory-field">
+      <span class="sr-only admin-inventory-label">Estado</span>
+      <span class="admin-work-state" data-state="{{ copy.state }}">{{ copy.get_state_display }}</span>
+      {% if copy.condition %}<p class="small muted">{{ copy.condition }}</p>{% endif %}
+    </div>
+    <a class="admin-text-link admin-inventory-edit" href="{% url 'edit_related' 'exemplar' copy.edition_id copy.pk %}" aria-label="Editar exemplar {{ copy.inventory }}">Editar exemplar{% include "management/icon.html" with icon="arrow" %}</a>
   </article>
-  {% empty %}<p class="muted">Nenhum exemplar corresponde aos filtros.</p>{% endfor %}
-  {% include "pagination.html" %}
+  {% endfor %}
+  {% if page.has_other_pages %}<div class="admin-collection-pagination">{% include "pagination.html" %}</div>{% endif %}
+  {% else %}
+  <div class="admin-collection-empty">
+    <span class="admin-empty-icon">{% if q or state %}{% include "management/icon.html" with icon="search" %}{% else %}{% include "management/icon.html" with icon="box" %}{% endif %}</span>
+    {% if q or state %}
+    <h3>Nenhum exemplar encontrado</h3>
+    <p>Experimente outro termo de pesquisa ou estado.</p>
+    {% else %}
+    <h3>Ainda não há exemplares registados</h3>
+    <p>Abra a edição de uma obra para registar o primeiro exemplar.</p>
+    {% endif %}
+  </div>
+  {% endif %}
 </section>
 {% endblock %}
