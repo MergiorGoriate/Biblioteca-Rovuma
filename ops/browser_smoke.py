@@ -1,6 +1,7 @@
 """Executar com Playwright instalado e o servidor local de demonstração activo."""
 import os
 import re
+from pathlib import Path
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -338,6 +339,8 @@ with sync_playwright() as playwright:
         upload_title = f"Guia de carregamento ({width})"
         page.locator("#id_title").fill(upload_title)
         page.locator("#id_language").fill("Português")
+        cover = Path(__file__).resolve().parents[1] / "static" / "rovuma-logo.png"
+        page.locator("#id_cover_image").set_input_files(cover)
         page.get_by_role("button", name="Continuar para o carregamento").click()
         expect(page.get_by_role("heading", name="Carregar documento")).to_be_visible()
         source = page.get_by_label("Ficheiro", exact=True)

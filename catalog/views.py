@@ -1,4 +1,5 @@
 from io import BytesIO
+import logging
 import os
 from tempfile import mkstemp
 
@@ -19,6 +20,9 @@ from documents.models import Version
 from reading.models import Bookmark, Progress
 from .models import Author, Copy, Edition, Identifier, Location, Subject, Work
 from .sample_assets import KEYS, PREFIX, SCHEME, asset
+
+
+logger = logging.getLogger(__name__)
 
 
 def allowed(user):
@@ -173,25 +177,30 @@ def edit_work(request, pk=None, upload_document=False):
     work = get_object_or_404(Work, pk=pk) if pk else None
     form = WorkForm(request.POST or None, request.FILES or None, instance=work)
     if request.method == "POST" and form.is_valid():
-        with transaction.atomic():
-            saved = form.save()
+        try:
+            with transaction.atomic():
+                saved = form.save()
+                if upload_document:
+                    edition = Edition.objects.create(work=saved, label="1.ª edição")
+                record(request.user, "collection", "Guardou obra", saved.pk)
+                if form.cleaned_data["cover_image"]:
+                    path = cover_path(saved.pk)
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    fd, temporary = mkstemp(dir=path.parent)
+                    try:
+                        with os.fdopen(fd, "wb") as target:
+                            target.write(form.cleaned_data["cover_image"])
+                        os.replace(temporary, path)
+                    finally:
+                        if os.path.exists(temporary):
+                            os.unlink(temporary)
+        except OSError as error:
+            logger.error("Falha ao guardar a capa no armazenamento privado: errno %s.", error.errno)
+            form.add_error("cover_image", "Não foi possível guardar a capa. Volte a seleccionar a imagem ou guarde a obra sem capa.")
+        else:
             if upload_document:
-                edition = Edition.objects.create(work=saved, label="1.ª edição")
-            record(request.user, "collection", "Guardou obra", saved.pk)
-            if form.cleaned_data["cover_image"]:
-                path = cover_path(saved.pk)
-                path.parent.mkdir(parents=True, exist_ok=True)
-                fd, temporary = mkstemp(dir=path.parent)
-                try:
-                    with os.fdopen(fd, "wb") as target:
-                        target.write(form.cleaned_data["cover_image"])
-                    os.replace(temporary, path)
-                finally:
-                    if os.path.exists(temporary):
-                        os.unlink(temporary)
-        if upload_document:
-            return redirect("upload", pk=edition.pk)
-        return redirect("manage_work", pk=saved.pk)
+                return redirect("upload", pk=edition.pk)
+            return redirect("manage_work", pk=saved.pk)
     return render(request, "form.html", {"form": form, "heading": "Registar obra digital" if upload_document else "Dados da obra",
                                         "layout": "management/base.html", "submit": "Continuar para o carregamento" if upload_document else None})
 

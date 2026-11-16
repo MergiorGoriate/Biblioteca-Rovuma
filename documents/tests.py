@@ -1,3 +1,4 @@
+import errno
 import json
 from datetime import timedelta
 from pathlib import Path
@@ -382,6 +383,30 @@ class LibraryTest(TestCase):
         with Image.open(BytesIO(b"".join(response.streaming_content))) as image:
             self.assertEqual(image.format, "WEBP")
             self.assertLessEqual(image.height, 840)
+
+    def test_new_digital_work_with_cover_storage_failure_preserves_form(self):
+        from io import BytesIO
+        from PIL import Image
+
+        cover = BytesIO()
+        Image.new("RGB", (64, 96), "navy").save(cover, "PNG")
+        route = self.url("new_digital_work")
+        title = "Guia digital com capa"
+        data = {"title": title, "kind": Work.Kind.BOOK, "language": "Português"}
+        with patch("catalog.views.mkstemp", side_effect=PermissionError(errno.EACCES, "Sem acesso")), \
+                self.assertLogs("catalog.views", level="ERROR"):
+            response = self.editor.post(route, {
+                **data, "cover_image": SimpleUploadedFile("capa.png", cover.getvalue(), "image/png"),
+            })
+        self.assertContains(response, "Não foi possível guardar a capa.")
+        self.assertContains(response, title)
+        self.assertFalse(Work.objects.filter(title=title).exists())
+
+        response = self.editor.post(route, {
+            **data, "cover_image": SimpleUploadedFile("capa.png", cover.getvalue(), "image/png"),
+        })
+        edition = Edition.objects.get(work__title=title)
+        self.assertRedirects(response, self.url("upload", edition.pk))
 
     def test_draft_publication_requires_reviewed_version_or_physical_copy(self):
         work = Work.objects.create(title="Obra por rever", language="Português")
