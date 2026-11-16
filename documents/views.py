@@ -18,7 +18,7 @@ from accounts.access import EDITOR, has, permission, require, student
 from audit.models import record
 from catalog.models import Edition, Work
 from .models import Document, Job, Licence, Upload, Version
-from .storage import original, part, reading_pdf
+from .storage import original, original_file, part, reading_pdf
 
 
 class UploadForm(forms.Form):
@@ -187,7 +187,7 @@ def download(request, pk):
     version = version_for(request.user, pk)
     if version.access_mode != Version.Mode.DOWNLOAD or version.state != Version.State.PUBLISHED:
         raise PermissionDenied
-    path = original(version.pk)
+    path = original_file(version)
     if not path.is_file():
         raise Http404
     response = FileResponse(path.open("rb"), as_attachment=True, filename=version.original_name,
@@ -209,7 +209,7 @@ def editorial(request, pk):
             if (version.state not in {Version.State.REVIEW, Version.State.ARCHIVED} or job.state != Job.State.DONE
                     or not version.pages or not version.sha256 or not version.authorization.strip()
                     or not Licence.objects.filter(version=version).exclude(reference="").exists()
-                    or not reading_pdf(version).is_file() or not original(version.pk).is_file()
+                    or not reading_pdf(version).is_file() or not original_file(version).is_file()
                     or request.POST.get("checked") != "yes"):
                 messages.error(request, "A publicação requer análise concluída, autorização e confirmação da revisão.")
                 return redirect("manage_work", pk=work.pk)

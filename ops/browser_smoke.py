@@ -62,7 +62,10 @@ with sync_playwright() as playwright:
         expect(page.locator("#marker")).to_have_attribute("aria-pressed", "true")
         page.get_by_role("link", name="Minhas leituras", exact=True).click()
         expect(page.get_by_role("heading", name="Marcadores")).to_be_visible()
-        expect(page.get_by_text("Página 1", exact=True)).to_have_count(2)
+        for section_name in ("Leituras recentes", "Marcadores"):
+            section = page.locator("section").filter(has=page.get_by_role("heading", name=section_name))
+            reading = section.locator(".record").filter(has_text="Introdução à investigação")
+            expect(reading.get_by_text("Página 1", exact=True)).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         page.get_by_role("button", name="Sair", exact=True).click()
         page.get_by_role("link", name="Entrada da administração").click()

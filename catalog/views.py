@@ -18,6 +18,7 @@ from audit.models import record
 from documents.models import Version
 from reading.models import Bookmark, Progress
 from .models import Author, Copy, Edition, Identifier, Location, Subject, Work
+from .sample_assets import KEYS, PREFIX, SCHEME, asset
 
 
 def allowed(user):
@@ -104,6 +105,11 @@ def cover_path(pk):
 def cover(request, pk):
     work = get_object_or_404(visible(), pk=pk)
     path = cover_path(work.pk)
+    if work.is_demo and not path.is_file():
+        marker = Identifier.objects.filter(edition__work=work, scheme=SCHEME, value__startswith=PREFIX).values_list("value", flat=True).first()
+        key = marker.removeprefix(PREFIX).lower() if marker else ""
+        if key in KEYS:
+            path = asset(key, "webp")
     try:
         image = path.open("rb")
     except FileNotFoundError:
