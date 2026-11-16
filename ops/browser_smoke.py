@@ -56,7 +56,8 @@ with sync_playwright() as playwright:
         page.locator("#id_password").fill(os.environ["DEMO_STAFF_PASSWORD"])
         page.get_by_role("button", name="Entrar").click()
         expect(page.get_by_role("heading", name="Painel administrativo")).to_be_visible()
-        assert page.locator("body").evaluate("body => getComputedStyle(body).colorScheme") == "dark"
+        expect(page).to_have_url(base + "/admin/")
+        expect(page.locator("body")).to_have_css("color-scheme", "dark")
         assert page.locator("footer.site-footer").count() == 0
         navigation = page.get_by_role("navigation", name="Navegação administrativa")
         menu = page.get_by_role("button", name="Menu administrativo")
