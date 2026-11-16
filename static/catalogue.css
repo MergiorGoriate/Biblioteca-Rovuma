@@ -126,6 +126,11 @@ html:has(.catalogue-page) { scroll-padding-block-start: 155px; }
 .portal-book-kind { margin-bottom: 5px; font-size: .75rem; color: var(--muted); font-weight: 640; }
 .portal-book-kind span { margin-left: 4px; }
 .portal-book .tags { margin-top: 10px; gap: 4px; }
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .portal-book .cover { overflow: hidden; }
+  .portal-book .cover img { transition: transform 220ms ease-out; }
+  .portal-book:is(:hover, :focus-within) .cover img { transform: scale(1.035); }
+}
 @media (max-width: 880px) {
   .portal-hero { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
   .portal-book-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }

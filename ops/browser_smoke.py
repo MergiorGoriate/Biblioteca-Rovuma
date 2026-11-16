@@ -13,6 +13,14 @@ with sync_playwright() as playwright:
         browser = playwright.chromium.launch(executable_path=executable, args=args)
         context = browser.new_context(viewport={"width": width, "height": height}, is_mobile=mobile, has_touch=mobile)
         page = context.new_page()
+        page.add_init_script("""
+            window.portalAnimatedElements = [];
+            const animate = Element.prototype.animate;
+            Element.prototype.animate = function (...args) {
+                window.portalAnimatedElements.push(this);
+                return animate.apply(this, args);
+            };
+        """)
         page.on("pageerror", lambda error: print(f"JavaScript: {error}", flush=True))
         page.on("console", lambda entry: print(f"Navegador: {entry.text}", flush=True) if entry.type == "error" else None)
         page.goto(base + "/entrar/")
@@ -21,6 +29,9 @@ with sync_playwright() as playwright:
         page.get_by_role("button", name="Entrar").click()
         expect(page.get_by_role("heading", name="A sua biblioteca")).to_be_visible()
         expect(page.get_by_role("heading", name="Explore o acervo")).to_be_visible()
+        page.wait_for_function("""window.portalAnimatedElements.some(element =>
+            element.matches('.portal-hero-content')) && window.portalAnimatedElements.some(element =>
+            element.matches('.portal-hero-image'))""")
         brand_location = ".site-header .brand" if mobile else ".management-sidebar .management-mark"
         brand = page.locator(f"{brand_location} .brand-icon")
         expect(brand).to_be_visible()
@@ -28,6 +39,7 @@ with sync_playwright() as playwright:
         header = page.get_by_role("banner")
         content = page.get_by_role("main")
         page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
+        page.wait_for_function("window.portalAnimatedElements.some(element => element.matches('.portal-book'))")
         expect(header).to_be_in_viewport(ratio=1)
         assert page.evaluate("window.scrollY") > 0
         assert content.evaluate("panel => panel.scrollHeight === panel.clientHeight")
@@ -65,6 +77,11 @@ with sync_playwright() as playwright:
         back_to_top = page.get_by_role("button", name="Voltar ao topo")
         expect(back_to_top).to_be_hidden()
         page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
+        page.wait_for_function("window.portalAnimatedElements.some(element => element.matches('.portal-book'))")
+        assert page.evaluate("""() => {
+            const books = window.portalAnimatedElements.filter(element => element.matches('.portal-book'));
+            return books.length === new Set(books).size;
+        }""")
         expect(back_to_top).to_be_in_viewport(ratio=1)
         assert content.evaluate("panel => panel.scrollHeight === panel.clientHeight")
         expect(page.locator("html")).to_have_css("scrollbar-color", "rgb(105, 105, 113) rgb(20, 20, 22)")
@@ -89,7 +106,12 @@ with sync_playwright() as playwright:
         filters.get_by_role("link", name="Limpar", exact=True).click()
         expect(page.get_by_text("5 resultados", exact=True)).to_be_visible()
         expect(filters.get_by_label("Formato", exact=True)).to_have_value("")
+        page.emulate_media(reduced_motion="reduce")
         portal_nav.get_by_role("link", name="Início", exact=True).click()
+        expect(page.get_by_role("heading", name="A sua biblioteca")).to_be_visible()
+        page.locator(".portal-book").first.scroll_into_view_if_needed()
+        page.evaluate("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))")
+        assert page.evaluate("window.portalAnimatedElements.length") == 0
         page.get_by_role("button", name="Activar modo claro").click()
         expect(page.locator("body")).to_have_css("color-scheme", "light")
         page.locator("#home-q").fill("Escrita académica")
