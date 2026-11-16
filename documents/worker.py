@@ -144,7 +144,7 @@ def run_one(folder, required):
             digest = hashlib.file_digest(fp, "sha256").hexdigest()
         if job["format"] == "docx":
             validate_docx(origin)
-            with tempfile.TemporaryDirectory() as working:
+            with tempfile.TemporaryDirectory(dir=folder) as working:
                 convert(origin, Path(working), target)
             scan(target, required)
         else:
@@ -179,12 +179,19 @@ def main():
                     continue
             except ValueError:
                 continue
-            if not (folder / "request.json").is_file() or (folder / "result.json").exists():
+            try:
+                request = folder / "request.json"
+                if not request.is_file():
+                    continue
+                if (folder / "result.json").exists():
+                    continue
+                result = run_one(folder, not args.development_no_antivirus)
+                temp = folder / "result.tmp"
+                temp.write_text(json.dumps(result), encoding="utf-8")
+                temp.replace(folder / "result.json")
+            except FileNotFoundError:
+                # The dispatcher may remove an expired or interrupted request.
                 continue
-            result = run_one(folder, not args.development_no_antivirus)
-            temp = folder / "result.tmp"
-            temp.write_text(json.dumps(result), encoding="utf-8")
-            temp.replace(folder / "result.json")
         if args.once:
             return
         time.sleep(3)

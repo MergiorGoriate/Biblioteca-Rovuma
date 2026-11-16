@@ -2,6 +2,8 @@ name: Validar Biblioteca Rovuma
 on:
   push:
     branches: [reconstrucao-modulos]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 jobs:
   django:
@@ -30,6 +32,7 @@ jobs:
           export POSTGRES_PASSWORD="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
           export POSTGRES_BOOTSTRAP_PASSWORD="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
           docker compose config --quiet
+          ROVUMA_PROCESSOR_TOKEN="$(openssl rand -hex 32)" docker compose -f compose.processor.yaml config --quiet
   processor:
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -64,3 +67,51 @@ jobs:
         run: |
           export DJANGO_SECRET_KEY=unused POSTGRES_PASSWORD=unused POSTGRES_BOOTSTRAP_PASSWORD=unused
           docker compose down --volumes --remove-orphans
+  processor-remote:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      COMPOSE_FILE: compose.processor.yaml
+      COMPOSE_PROJECT_NAME: rovuma-processador-remoto-ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verificar o processamento com as assinaturas oficiais
+        run: |
+          export ROVUMA_PROCESSOR_TOKEN="$(openssl rand -hex 32)"
+          docker compose build --pull gateway
+          docker compose up -d --no-deps converter
+          docker compose up -d --no-deps --wait gateway
+          docker compose exec -T gateway python - <<'PY'
+          import hashlib
+          import http.client
+          import os
+          import tempfile
+          from pathlib import Path
+
+          from ops.verify_processor import write_probe_docx
+          from documents.worker import pdf_pages
+
+          with tempfile.TemporaryDirectory() as temporary:
+              source = Path(temporary) / "ensaio.docx"
+              write_probe_docx(source)
+              data = source.read_bytes()
+              connection = http.client.HTTPConnection("::1", 8080, timeout=700)
+              connection.request("POST", "/process")
+              assert connection.getresponse().status == 401
+              connection.close()
+              token = os.environ["ROVUMA_PROCESSOR_TOKEN"]
+              connection.request("POST", "/process", data, {
+                  "Authorization": f"Bearer {token}",
+                  "X-Document-Format": "docx",
+              })
+              result = connection.getresponse()
+              assert result.status == 200, (result.status, result.read(512))
+              assert result.getheader("X-Original-SHA256") == hashlib.sha256(data).hexdigest()
+              target = Path(temporary) / "resultado.pdf"
+              target.write_bytes(result.read())
+              assert pdf_pages(target) == 1
+              connection.close()
+          PY
+      - name: Remover ambiente descartável
+        if: always()
+        run: ROVUMA_PROCESSOR_TOKEN=unused docker compose down --volumes --remove-orphans

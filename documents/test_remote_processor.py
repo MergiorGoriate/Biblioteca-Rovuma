@@ -5,12 +5,46 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Thread
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
-from .remote_processor import ProcessorServer, process
+from .remote_processor import ProcessorServer, job_directory, process, run_job
 
 
 class PrivateTransportTests(TestCase):
+    def test_isolated_worker_result_and_cleanup(self):
+        with TemporaryDirectory() as root:
+            with job_directory(Path(root)) as folder:
+                (folder / "result.json").write_text('{"pages": 1}', encoding="utf-8")
+                self.assertEqual(run_job(folder, Path(root)), {"pages": 1})
+            self.assertFalse(folder.exists())
+
+    def test_remote_origin_uses_https(self):
+        key = "temporary-local-test-key-" * 2
+        with TemporaryDirectory() as root:
+            source = Path(root) / "original"
+            source.write_bytes(b"ensaio")
+            response = Mock(status=200)
+            response.getheader.side_effect = {
+                "X-PDF-Pages": "1",
+                "X-Original-SHA256": sha256(b"ensaio").hexdigest(),
+                "Content-Length": "0",
+            }.get
+            with patch("documents.remote_processor.http.client.HTTPSConnection") as https:
+                https.return_value.getresponse.return_value = response
+                result = process("https://processor.example.invalid", key, source, "pdf", source)
+                https.assert_called_once_with("processor.example.invalid", 443, timeout=850)
+                method, route, _, headers = https.return_value.request.call_args.args
+                self.assertEqual((method, route), ("POST", "/process"))
+                self.assertEqual(headers["Authorization"], f"Bearer {key}")
+                self.assertEqual(result["pages"], 1)
+
+    def test_rejects_insecure_external_origin(self):
+        key = "temporary-local-test-key-" * 2
+        for url in ("http://processor.example.invalid", "ftp://worker.railway.internal",
+                    "https://user@processor.example.invalid", "https://processor.example.invalid/other"):
+            with self.subTest(url=url), self.assertRaises(ValueError):
+                process(url, key, None, "pdf", None)
+
     def test_authorization_and_docx_round_trip(self):
         key = "temporary-local-test-key-" * 2
         payload = b"Conteudo de ensaio"
