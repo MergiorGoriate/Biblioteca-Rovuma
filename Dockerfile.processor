@@ -10,7 +10,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=signatures --chown=10001:10001 /var/lib/clamav/ /var/lib/clamav/
 RUN (test -f /var/lib/clamav/daily.cvd || test -f /var/lib/clamav/daily.cld) \
     && chown -R 10001:10001 /var/lib/clamav
-RUN clamscan --no-summary /etc/debian_version
 RUN python3 -m venv /opt/rovuma \
     && /opt/rovuma/bin/pip install --no-cache-dir pypdf==6.21.4 defusedxml==0.7.1
 ENV PATH=/opt/rovuma/bin:$PATH
@@ -18,4 +17,5 @@ COPY --chown=10001:10001 documents/ documents/
 COPY --chown=10001:10001 ops/start_processor.sh ops/start_processor.sh
 COPY --chown=10001:10001 ops/verify_processor.py ops/verify_processor.py
 USER rovuma
+RUN clamscan --no-summary /etc/debian_version && python -m ops.verify_processor
 CMD ["sh", "ops/start_processor.sh"]
