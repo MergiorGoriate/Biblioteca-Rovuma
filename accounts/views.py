@@ -153,9 +153,7 @@ def activate(request, token):
             user.session_version += 1
             user.save()
             return redirect("login")
-    response = render(request, "form.html", {"heading": "Activar conta", "form": form})
-    response["Referrer-Policy"] = "no-referrer"
-    return response
+    return render(request, "form.html", {"heading": "Activar conta", "form": form})
 
 
 @require(lambda user: has(user, "accounts.manage_credential") or has(user, "accounts.correct_number"),
@@ -213,9 +211,7 @@ def credential(request, pk):
                 activation_link = request.build_absolute_uri(reverse_lazy("activate", kwargs={"token": token}))
             else:
                 messages.error(request, "Confirme o estado da conta e indique a justificação para confirmar a identidade, suspender ou reactivar.")
-    response = render(request, "credential_rebuilt.html", {"account": account, "activation_link": activation_link})
-    response["Referrer-Policy"] = "no-referrer"
-    return response
+    return render(request, "credential_rebuilt.html", {"account": account, "activation_link": activation_link})
 
 
 @permission("accounts.correct_number")
