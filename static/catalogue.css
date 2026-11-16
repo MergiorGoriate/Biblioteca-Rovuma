@@ -4,6 +4,9 @@
   --admin-accent-hover: #bed8ff;
   --admin-accent-ink: #11274c;
   --portal-cover-mat: #242a37;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
 }
 [data-management-theme="light"] .reader-portal {
   --admin-accent: #254c8b;
@@ -11,16 +14,23 @@
   --admin-accent-ink: #fff;
   --portal-cover-mat: #e6ecf5;
 }
-.reader-portal .management-content { padding-top: clamp(18px, 3vw, 34px); }
+/* Keep the header and navigation outside the scrolling panel. */
+.reader-portal .management-shell { display: contents; }
+.reader-portal :is(.site-header, .management-sidebar) { flex: 0 0 auto; }
+.reader-portal .management-content {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior-y: contain;
+  scroll-padding-block: 12px;
+  padding-top: clamp(18px, 3vw, 34px);
+}
+.reader-portal .management-content:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
 .reader-portal .management-navigation a { overflow-wrap: anywhere; }
 .reader-portal .theme-label { white-space: nowrap; }
-.reader-portal .site-header {
-  position: sticky;
-  top: var(--admin-gap);
-  z-index: 4;
-}
 .reader-portal .site-header .brand { font-weight: 730; }
-.reader-portal #conteudo { scroll-margin-top: 100px; }
 .catalogue-filters {
   display: flex;
   align-items: center;
@@ -63,7 +73,6 @@
 .catalogue-year { width: 105px; }
 .catalogue-filters :is(.primary, .plain) { min-height: 40px; font-size: .84rem; border-radius: 100px; }
 .catalogue-filters .plain { padding-inline: 9px; }
-.reader-portal.catalogue-page #conteudo { scroll-margin-top: 145px; }
 .catalogue-results-heading h1 { font-size: clamp(1.4rem, 3vw, 1.85rem); }
 .catalogue-acervo-note { margin-block: 14px 0; }
 .portal-hero {
@@ -104,12 +113,16 @@
   .portal-book-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 @media (min-width: 741px) {
-  /* CSS placement keeps the header and rail aligned while preserving their DOM order. */
-  .reader-portal .management-rail { align-content: start; }
+  .reader-portal { grid-template-rows: auto minmax(0, 1fr); }
+  .reader-portal .management-sidebar {
+    position: static;
+    min-height: 0;
+    align-self: stretch;
+    overflow-y: auto;
+  }
+  .reader-portal .management-rail { min-height: 100%; }
 }
 @media (max-width: 740px) {
-  .reader-portal .site-header { top: 10px; }
-  .reader-portal #conteudo { scroll-margin-top: 135px; }
   .reader-portal .management-rail { padding: 5px; margin: 0; }
   .reader-portal .management-navigation { display: flex; flex-wrap: wrap; gap: 3px; }
   .reader-portal .management-navigation a {
@@ -133,7 +146,6 @@
   }
   .catalogue-year { width: auto; }
   .catalogue-filters .plain { justify-self: start; }
-  .reader-portal.catalogue-page #conteudo { scroll-margin-top: 260px; }
 }
 @media (max-width: 610px) {
   .portal-hero { grid-template-columns: minmax(0, 1fr); }
