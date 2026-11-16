@@ -12,7 +12,6 @@ class Event(models.Model):
 
     class Meta:
         ordering = ("-created",)
-        permissions = (("view_event", "Pode consultar auditoria"),)
 
 
 def record(actor, area, action, reference, **details):
