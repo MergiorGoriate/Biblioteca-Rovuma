@@ -1,12 +1,12 @@
 from django.contrib.auth import views as auth
 from django.urls import path
-from django.views.generic import TemplateView
 
 from accounts import views as account
 from audit.views import events
 from catalog import views as catalog
 from documents import views as document
 from reading import views as reading
+from management import views as management
 
 
 urlpatterns = [
@@ -29,6 +29,8 @@ urlpatterns = [
     path("ler/<uuid:pk>/progresso/", reading.update, name="reading_update"),
     path("documento/<uuid:pk>/pdf/", document.pdf, name="pdf"),
     path("documento/<uuid:pk>/descarregar/", document.download, name="download"),
+    path("gestao/", management.dashboard, name="management"),
+    path("gestao/documentos/", management.document_queue, name="document_queue"),
     path("gestao/obras/", catalog.collection, name="collection"),
     path("gestao/obras/nova/", catalog.edit_work, name="new_work"),
     path("gestao/obras/<int:pk>/", catalog.manage_work, name="manage_work"),

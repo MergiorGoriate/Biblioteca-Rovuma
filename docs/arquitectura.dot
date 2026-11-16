@@ -1,12 +1,12 @@
 digraph Biblioteca {
-  graph [rankdir=TB, bgcolor="#f5f4ee", pad=0.35, nodesep=0.28, ranksep=0.45, fontname="DejaVu Sans"];
-  node [shape=box, style="rounded,filled", color="#315e50", fillcolor="#ffffff", fontname="DejaVu Sans", margin="0.18,0.12"];
-  edge [color="#427361", fontname="DejaVu Sans", fontsize=10];
+  graph [rankdir=TB, bgcolor="#f4f7fc", pad=0.35, nodesep=0.28, ranksep=0.45, fontname="DejaVu Sans"];
+  node [shape=box, style="rounded,filled", color="#174b97", fillcolor="#ffffff", fontname="DejaVu Sans", margin="0.18,0.12"];
+  edge [color="#123261", fontname="DejaVu Sans", fontsize=10];
   users [label="◉  Utilizadores\nEstudante · Bibliotecário · Técnico"];
   proxy [label="⇄  Proxy Caddy\nHTTPS"];
   auth [label="◆  Identidade e sessões\nDjango · credenciamento"];
   idp [label="Portal académico\nIntegração por confirmar", style="rounded,dashed,filled"];
-  d [label="▣  Aplicação Django\nCatálogo · Documentos · Leitura\nGestão · Auditoria", fillcolor="#dce9de"];
+  d [label="▣  Aplicação Django\nCatálogo · Documentos · Leitura\nGestão · Auditoria", fillcolor="#dceaff"];
   pg [shape=cylinder, label="▤  PostgreSQL\nMetadados e sessões"];
   fs [shape=folder, label="▰  Armazenamento privado\nOriginais · PDF · capas"];
   dispatcher [label="⇄  Despachante\nFila e resultados"];
@@ -15,7 +15,7 @@ digraph Biblioteca {
   backup [label="▣  Restic\nCópia diária encriptada"];
   external [shape=cylinder, label="▤  Destino externo"];
   users -> proxy -> auth -> d;
-  idp -> auth [style=dashed, label="  Provedor por confirmar"];
+  idp -> auth [style=dashed, label="  Fornecedor por confirmar"];
   d -> pg;
   d -> fs;
   pg -> dispatcher;

@@ -239,7 +239,7 @@ class LibraryTest(TestCase):
         self.assertTrue(self.client.login(username=self.student.username, password="New!Example-135"))
 
     def test_manual_identity_activation_is_single_use(self):
-        pending = User.objects.create(username="0008", institutional_number="0008", is_active=False,
+        pending = User.objects.create(username="0008", institutional_number="0008", is_active=False, state=User.State.PENDING,
             credential_until=timezone.localdate() + timedelta(days=30))
         response = self.editor.post(self.url("credential", pending.pk), {"action": "activate", "reason": "Identidade verificada"})
         self.assertEqual(response.status_code, 200)
@@ -274,3 +274,142 @@ class LibraryTest(TestCase):
         self.assertEqual(self.client.get(self.url("reader", self.version.pk)).context["page"], 2)
         self.assertEqual(Bookmark.objects.get(user=self.student).page, 2)
         self.assertFalse(self.client.post(url, {"page": 2, "action": "unmark"}).json()["marked"])
+
+    def test_management_dashboard_and_audit_scope(self):
+        from audit.models import record
+        record(self.staff, "collection", "Acção editorial visível", self.work.pk)
+        record(self.staff, "technical", "Acção técnica reservada", self.work.pk)
+        self.assertRedirects(self.editor.get(self.url("home")), self.url("management"))
+        self.assertContains(self.editor.get(self.url("management")), "Gerir estudantes")
+        audit = self.editor.get(self.url("audit"))
+        self.assertContains(audit, "Acção editorial visível")
+        self.assertNotContains(audit, "Acção técnica reservada")
+        self.enter()
+        self.assertEqual(self.client.get(self.url("management")).status_code, 403)
+
+    def test_bad_import_is_reported_before_confirmation(self):
+        payload = b"numero,validade,email_validado\n0009,2027-01-01,\n0008,impossivel,\n0009,2027-01-01,\n"
+        upload = self.editor.post(self.url("imports"), {
+            "source": "Demonstração", "file": SimpleUploadedFile("estudantes.csv", payload),
+        })
+        self.assertEqual(upload.status_code, 302)
+        preview = self.editor.get(upload.url)
+        self.assertContains(preview, "Validade inválida")
+        self.assertContains(preview, "Número repetido")
+        self.assertEqual(self.editor.post(upload.url).status_code, 200)
+        self.assertFalse(User.objects.filter(username__in=["0008", "0009"]).exists())
+
+    def test_expired_and_suspended_accounts_cannot_read(self):
+        self.student.credential_until = timezone.localdate() - timedelta(days=1)
+        self.student.save()
+        self.enter()
+        self.assertEqual(self.client.get(self.url("catalogue")).status_code, 403)
+        self.student.state = User.State.SUSPENDED
+        self.student.save()
+        result = self.client.post(self.url("login"), {"username": "0007", "password": "Test!Student"}, follow=True)
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertEqual(result.status_code, 200)
+
+    def test_login_and_recovery_throttle(self):
+        from accounts.views import LocalLogin, LocalReset
+        for endpoint, view, data in [
+            ("login", LocalLogin, {"username": "0007", "password": "wrong"}),
+            ("password_reset", LocalReset, {"email": "unknown@example.invalid"}),
+        ]:
+            with patch.object(view, "rate_limit", 1):
+                self.assertLess(self.client.post(self.url(endpoint), data).status_code, 400)
+                response = self.client.post(self.url(endpoint), data)
+                self.assertContains(response, "demasiadas tentativas", status_code=429)
+                self.assertEqual(response["Retry-After"], "900")
+
+    def test_cover_is_private_and_optimized(self):
+        from io import BytesIO
+        from PIL import Image
+        buffer = BytesIO()
+        Image.new("RGB", (1000, 1800), "navy").save(buffer, "PNG")
+        response = self.editor.post(self.url("edit_work", self.work.pk), {
+            "title": self.work.title, "kind": self.work.kind, "language": self.work.language,
+            "cover_image": SimpleUploadedFile("cover.png", buffer.getvalue(), "image/png"),
+        })
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(self.client.get(self.url("cover", self.work.pk)).status_code, 302)
+        self.enter()
+        response = self.client.get(self.url("cover", self.work.pk))
+        with Image.open(BytesIO(b"".join(response.streaming_content))) as image:
+            self.assertEqual(image.format, "WEBP")
+            self.assertLessEqual(image.height, 840)
+
+    def test_draft_publication_requires_reviewed_version_or_physical_copy(self):
+        work = Work.objects.create(title="Obra por rever", language="Português")
+        self.editor.post(self.url("work_state", work.pk), {"action": "publish"})
+        work.refresh_from_db()
+        self.assertEqual(work.state, Work.State.DRAFT)
+        edition = Edition.objects.create(work=work, label="Edição física")
+        location = Location.objects.create(name="Biblioteca", shelf="Estante C")
+        Copy.objects.create(edition=edition, inventory="A-1", location=location)
+        self.editor.post(self.url("work_state", work.pk), {"action": "publish"})
+        work.refresh_from_db()
+        self.assertEqual(work.state, Work.State.PUBLISHED)
+
+    def test_daily_cleanup_removes_expired_partial_uploads_and_counters(self):
+        from accounts.models import Attempt, ImportBatch
+        from documents.models import Upload
+        recent = self.start("incompleto.pdf", 10)
+        stale = Upload.objects.get(pk=recent.rstrip("/").split("/")[-1])
+        Upload.objects.filter(pk=stale.pk).update(updated=timezone.now() - timedelta(days=4))
+        Attempt.objects.create(scope="login", address="test")
+        Attempt.objects.update(updated=timezone.now() - timedelta(days=4))
+        draft = ImportBatch.objects.create(operator=self.staff, source="CSV")
+        ImportBatch.objects.filter(pk=draft.pk).update(created=timezone.now() - timedelta(days=4))
+        call_command("clean_uploads")
+        self.assertFalse(Upload.objects.filter(pk=stale.pk).exists())
+        self.assertFalse(Attempt.objects.exists())
+        self.assertFalse(ImportBatch.objects.filter(pk=draft.pk).exists())
+
+    def test_dashboard_links_and_document_queue_respect_permissions(self):
+        failed = self.version_for(self.document, state=Version.State.PROCESSING, format_="docx")
+        failed.job.state = Job.State.ERROR
+        failed.job.error = "Conversão interrompida."
+        failed.job.save()
+        review = self.version_for(self.document, state=Version.State.REVIEW)
+        review.job.state = Job.State.DONE
+        review.job.save()
+        queued = self.version_for(self.document, state=Version.State.PROCESSING)
+        dashboard = self.editor.get(self.url("management"))
+        self.assertEqual(dashboard.context["documents"], {"revisao": 1, "processamento": 1, "falhas": 1})
+        self.assertEqual(dashboard.context["students"]["active"], 1)
+        response = self.editor.get(self.url("document_queue"), {"estado": "falhas", "q": self.work.title})
+        self.assertContains(response, "Conversão interrompida.")
+        self.assertContains(response, f'#documento-{failed.pk}')
+        self.assertEqual(list(response.context["page"]), [failed])
+        response = self.editor.get(self.url("document_queue"), {"estado": "revisao"})
+        self.assertEqual(list(response.context["page"]), [review])
+        response = self.editor.get(self.url("document_queue"), {"estado": "processamento"})
+        self.assertEqual(list(response.context["page"]), [queued])
+        self.assertEqual(self.client.get(self.url("document_queue")).status_code, 302)
+        self.enter()
+        self.assertEqual(self.client.get(self.url("document_queue")).status_code, 403)
+        credentials_only = User.objects.create_user(username="gestor-contas")
+        credentials_only.user_permissions.add(Permission.objects.get(codename="manage_credential"))
+        self.client.force_login(credentials_only)
+        dashboard = self.client.get(self.url("management"))
+        self.assertContains(dashboard, "Gerir estudantes")
+        self.assertNotContains(dashboard, "Falhas de processamento")
+        self.assertNotContains(dashboard, "Gerir acervo")
+        self.assertEqual(self.client.get(self.url("document_queue")).status_code, 403)
+
+    def test_dashboard_filters_match_lists(self):
+        self.student.credential_until = timezone.localdate() - timedelta(days=1)
+        self.student.save()
+        pending = User.objects.create(username="0009", institutional_number="0009",
+                                      is_active=False, state=User.State.PENDING)
+        dashboard = self.editor.get(self.url("management"))
+        self.assertEqual(dashboard.context["students"], {"active": 0, "pending": 1, "expired": 1, "suspended": 0})
+        response = self.editor.get(self.url("students"), {"estado": "expired"})
+        self.assertEqual(list(response.context["page"]), [self.student])
+        self.assertContains(response, "Sem credenciamento válido")
+        response = self.editor.get(self.url("students"), {"estado": "pending"})
+        self.assertEqual(list(response.context["page"]), [pending])
+        draft = Work.objects.create(title="Obra em preparação", language="Português")
+        response = self.editor.get(self.url("collection"), {"estado": "draft"})
+        self.assertEqual(list(response.context["page"]), [draft])

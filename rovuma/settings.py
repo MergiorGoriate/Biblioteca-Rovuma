@@ -59,6 +59,7 @@ LOGIN_URL = "login"
 LOGIN_REDIRECT_URL = "home"
 LOGOUT_REDIRECT_URL = "login"
 SESSION_COOKIE_AGE = 43200
+TRUST_ROVUMA_PROXY = os.getenv("TRUST_ROVUMA_PROXY", "0") == "1"
 SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = not DEBUG
 SECURE_SSL_REDIRECT = not DEBUG
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
@@ -88,4 +89,4 @@ DATA_UPLOAD_MAX_MEMORY_SIZE = 2 * 1024**2
 # Evita registar caminhos que contenham ligações temporárias.
 LOGGING = {"version": 1, "disable_existing_loggers": False, "handlers": {"quiet": {"class": "logging.NullHandler"}},
            "loggers": {name: {"handlers": ["quiet"], "propagate": False}
-                       for name in ("django.server", "django.request", "django.security.csrf")}}
+                       for name in ("django.server", "django.request", "django.security.csrf", "django.contrib.auth")}}

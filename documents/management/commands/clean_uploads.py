@@ -14,12 +14,12 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         cutoff = timezone.now() - timedelta(hours=72)
-        ids = list(Upload.objects.filter(updated__lt=cutoff).values_list("pk", flat=True))
+        ids = list(Upload.objects.filter(updated__lt=cutoff, version__isnull=True).values_list("pk", flat=True))
         for pk in ids:
             with transaction.atomic():
-                upload = Upload.objects.select_for_update().filter(pk=pk, updated__lt=cutoff).first()
+                upload = Upload.objects.select_for_update().filter(pk=pk, updated__lt=cutoff, version__isnull=True).first()
                 if upload:
                     part(pk).unlink(missing_ok=True)
                     upload.delete()
-        Attempt.objects.filter(since__lt=cutoff).delete()
-        ImportBatch.objects.filter(confirmed__isnull=True, created__lt=cutoff).delete()
+        Attempt.objects.filter(updated__lt=cutoff).delete()
+        ImportBatch.objects.filter(confirmed=False, created__lt=cutoff).delete()

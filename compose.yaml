@@ -7,6 +7,7 @@ x-app: &app
     target: web
   environment:
     APP_ENV: ${APP_ENV:-production}
+    TRUST_ROVUMA_PROXY: "1"
     DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY}
     DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS}
     POSTGRES_DB: ${POSTGRES_DB}

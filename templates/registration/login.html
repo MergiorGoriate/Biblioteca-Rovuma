@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Iniciar sessão · Biblioteca Rovuma{% endblock %}
 {% block content %}
+{% if limited %}<p class="notice error" role="alert">Foram efectuadas demasiadas tentativas. Aguarde 15 minutos e volte a tentar.</p>{% endif %}
 <div class="login-layout">
 <section class="login-hero">
 <p class="eyebrow">Universidade Rovuma</p><h1>Biblioteca Rovuma</h1>
