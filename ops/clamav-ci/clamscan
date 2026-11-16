@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /usr/bin/clamscan --database=/opt/clamav-ci/sonda.ndb "$@"
