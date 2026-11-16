@@ -1,5 +1,6 @@
 from django.contrib.auth import views as auth
-from django.urls import path, reverse_lazy
+from django.http import HttpResponsePermanentRedirect
+from django.urls import path, re_path, reverse_lazy
 
 from accounts import views as account
 from audit.views import events
@@ -7,6 +8,14 @@ from catalog import views as catalog
 from documents import views as document
 from reading import views as reading
 from management import views as management
+
+
+def redirect_legacy_management(request, route=None):
+    target = "/admin/" + (route or "")
+    query = request.get_full_path().partition("?")[2]
+    if query:
+        target += "?" + query
+    return HttpResponsePermanentRedirect(target, preserve_request=True)
 
 
 urlpatterns = [
@@ -30,29 +39,30 @@ urlpatterns = [
     path("ler/<uuid:pk>/progresso/", reading.update, name="reading_update"),
     path("documento/<uuid:pk>/pdf/", document.pdf, name="pdf"),
     path("documento/<uuid:pk>/descarregar/", document.download, name="download"),
-    path("gestao/palavra-passe/", account.LocalChange.as_view(management_area=True, success_url=reverse_lazy("management")), name="management_password"),
-    path("gestao/entrar/", account.ManagementLogin.as_view(), name="management_login"),
-    path("gestao/pre-visualizar/<uuid:pk>/", reading.preview, name="reader_preview"),
-    path("gestao/", management.dashboard, name="management"),
-    path("gestao/documentos/", management.document_queue, name="document_queue"),
-    path("gestao/obras/", catalog.collection, name="collection"),
-    path("gestao/obras/nova/", catalog.edit_work, name="new_work"),
-    path("gestao/obras/<int:pk>/", catalog.manage_work, name="manage_work"),
-    path("gestao/obras/<int:pk>/editar/", catalog.edit_work, name="edit_work"),
-    path("gestao/obras/<int:pk>/estado/", catalog.work_state, name="work_state"),
-    path("gestao/localizacoes/", catalog.locations, name="locations"),
-    path("gestao/registo/<slug:kind>/", catalog.edit_related, name="new_location"),
-    path("gestao/registo/<slug:kind>/editar/<int:pk>/", catalog.edit_related, name="edit_location"),
-    path("gestao/registo/<slug:kind>/<int:parent>/", catalog.edit_related, name="new_related"),
-    path("gestao/registo/<slug:kind>/<int:parent>/<int:pk>/", catalog.edit_related, name="edit_related"),
-    path("gestao/carregar/<int:pk>/", document.upload_page, name="upload"),
-    path("gestao/carregar/<int:pk>/iniciar/", document.start_upload, name="start_upload"),
-    path("gestao/partes/<uuid:upload_id>/", document.chunks, name="upload_chunks"),
-    path("gestao/documento/<uuid:pk>/", document.editorial, name="editorial"),
-    path("gestao/estudantes/", account.students, name="students"),
-    path("gestao/estudantes/<int:pk>/", account.credential, name="credential"),
-    path("gestao/estudantes/<int:pk>/corrigir/", account.correct, name="correct"),
-    path("gestao/importar/", account.imports, name="imports"),
-    path("gestao/importar/<int:pk>/", account.import_preview, name="import_preview"),
-    path("gestao/auditoria/", events, name="audit"),
+    path("admin/palavra-passe/", account.LocalChange.as_view(management_area=True, success_url=reverse_lazy("management")), name="management_password"),
+    path("admin/entrar/", account.ManagementLogin.as_view(), name="management_login"),
+    path("admin/pre-visualizar/<uuid:pk>/", reading.preview, name="reader_preview"),
+    path("admin/", management.dashboard, name="management"),
+    path("admin/documentos/", management.document_queue, name="document_queue"),
+    path("admin/obras/", catalog.collection, name="collection"),
+    path("admin/obras/nova/", catalog.edit_work, name="new_work"),
+    path("admin/obras/<int:pk>/", catalog.manage_work, name="manage_work"),
+    path("admin/obras/<int:pk>/editar/", catalog.edit_work, name="edit_work"),
+    path("admin/obras/<int:pk>/estado/", catalog.work_state, name="work_state"),
+    path("admin/localizacoes/", catalog.locations, name="locations"),
+    path("admin/registo/<slug:kind>/", catalog.edit_related, name="new_location"),
+    path("admin/registo/<slug:kind>/editar/<int:pk>/", catalog.edit_related, name="edit_location"),
+    path("admin/registo/<slug:kind>/<int:parent>/", catalog.edit_related, name="new_related"),
+    path("admin/registo/<slug:kind>/<int:parent>/<int:pk>/", catalog.edit_related, name="edit_related"),
+    path("admin/carregar/<int:pk>/", document.upload_page, name="upload"),
+    path("admin/carregar/<int:pk>/iniciar/", document.start_upload, name="start_upload"),
+    path("admin/partes/<uuid:upload_id>/", document.chunks, name="upload_chunks"),
+    path("admin/documento/<uuid:pk>/", document.editorial, name="editorial"),
+    path("admin/estudantes/", account.students, name="students"),
+    path("admin/estudantes/<int:pk>/", account.credential, name="credential"),
+    path("admin/estudantes/<int:pk>/corrigir/", account.correct, name="correct"),
+    path("admin/importar/", account.imports, name="imports"),
+    path("admin/importar/<int:pk>/", account.import_preview, name="import_preview"),
+    path("admin/auditoria/", events, name="audit"),
+    re_path(r"^gestao(?:/(?P<route>.*))?$", redirect_legacy_management),
 ]

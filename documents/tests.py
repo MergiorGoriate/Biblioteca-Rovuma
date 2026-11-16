@@ -423,7 +423,7 @@ class LibraryTest(TestCase):
     def test_portal_and_management_have_distinct_navigation_and_permissions(self):
         from django.contrib.auth import SESSION_KEY
         draft = Work.objects.create(title="Rascunho exclusivo da gestão", language="Português")
-        self.assertRedirects(self.client.get(self.url("management")), self.url("management_login") + "?next=/gestao/")
+        self.assertRedirects(self.client.get(self.url("management")), self.url("management_login") + "?next=/admin/")
         self.assertContains(self.client.get(self.url("management_login")), "Entre com a sua conta de bibliotecário")
         self.assertEqual(self.client.post(self.url("management_login"), {"username": "0007", "password": "Test!Student"}).status_code, 200)
         self.assertNotIn(SESSION_KEY, self.client.session)
@@ -448,3 +448,18 @@ class LibraryTest(TestCase):
         self.staff.save()
         result = Client().post(self.url("management_login"), {"username": self.staff.username, "password": "Staff test password 927!"})
         self.assertEqual(result.url, self.url("management"))
+
+    def test_legacy_management_redirect_preserves_route_query_and_method(self):
+        for previous, target in [
+            ("/gestao", "/admin/"),
+            ("/gestao/entrar/?next=%2Fgestao%2F", "/admin/entrar/?next=%2Fgestao%2F"),
+            ("/gestao/obras/?estado=draft&page=2", "/admin/obras/?estado=draft&page=2"),
+        ]:
+            response = self.client.get(previous)
+            self.assertEqual(response.status_code, 308)
+            self.assertEqual(response.url, target)
+
+        result = self.editor.post(f"/gestao/obras/{self.work.pk}/estado/", {"action": "archive"}, follow=True)
+        self.assertEqual(result.redirect_chain[0], (self.url("work_state", self.work.pk), 308))
+        self.work.refresh_from_db()
+        self.assertEqual(self.work.state, Work.State.ARCHIVED)
