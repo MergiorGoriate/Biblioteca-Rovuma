@@ -1,52 +1,10 @@
-Creating test database for alias 'default' ('test_rovuma')...
-Found 15 test(s).
-Operations to perform:
-  Synchronize unmigrated apps: messages, postgres, staticfiles
-  Apply all migrations: accounts, audit, auth, catalog, contenttypes, documents, reading, sessions
-Synchronizing apps without migrations:
-  Creating tables...
-    Running deferred SQL...
-Running migrations:
-  Applying contenttypes.0001_initial... OK
-  Applying contenttypes.0002_remove_content_type_name... OK
-  Applying auth.0001_initial... OK
-  Applying auth.0002_alter_permission_name_max_length... OK
-  Applying auth.0003_alter_user_email_max_length... OK
-  Applying auth.0004_alter_user_username_opts... OK
-  Applying auth.0005_alter_user_last_login_null... OK
-  Applying auth.0006_require_contenttypes_0002... OK
-  Applying auth.0007_alter_validators_add_error_messages... OK
-  Applying auth.0008_alter_user_username_max_length... OK
-  Applying auth.0009_alter_user_last_name_max_length... OK
-  Applying auth.0010_alter_group_name_max_length... OK
-  Applying auth.0011_update_proxy_permissions... OK
-  Applying auth.0012_alter_user_first_name_max_length... OK
-  Applying accounts.0001_initial... OK
-  Applying audit.0001_initial... OK
-  Applying catalog.0001_initial... OK
-  Applying catalog.0002_postgres_search... OK
-  Applying documents.0001_initial... OK
-  Applying reading.0001_initial... OK
-  Applying sessions.0001_initial...test_background_checks_publish_and_replacement (documents.tests.LibraryTest.test_background_checks_publish_and_replacement) ... ok
-test_download_and_byte_ranges (documents.tests.LibraryTest.test_download_and_byte_ranges) ... ok
-test_drafts_processing_unknown_and_raw_paths (documents.tests.LibraryTest.test_drafts_processing_unknown_and_raw_paths) ... ok
-test_failed_docx_cannot_publish (documents.tests.LibraryTest.test_failed_docx_cannot_publish) ... ok
-test_guest_catalogue_bytes_and_download (documents.tests.LibraryTest.test_guest_catalogue_bytes_and_download) ... ok
-test_import_is_idempotent_and_does_not_suspend_missing (documents.tests.LibraryTest.test_import_is_idempotent_and_does_not_suspend_missing) ... ok
-test_large_upload_above_100_mib_and_resume (documents.tests.LibraryTest.test_large_upload_above_100_mib_and_resume) ... ok
-test_manual_identity_activation_is_single_use (documents.tests.LibraryTest.test_manual_identity_activation_is_single_use) ... ok
-test_password_recovery_changes_existing_account (documents.tests.LibraryTest.test_password_recovery_changes_existing_account) ... ok
-test_physical_location_and_native_search (documents.tests.LibraryTest.test_physical_location_and_native_search) ... ok
-test_profile_number_immutable (documents.tests.LibraryTest.test_profile_number_immutable) ... ok
-test_progress_and_bookmarks (documents.tests.LibraryTest.test_progress_and_bookmarks) ... ok
-test_published_catalogue_and_all_digital_works (documents.tests.LibraryTest.test_published_catalogue_and_all_digital_works) ... ok
-test_suspend_invalidates_open_and_reactivated_session (documents.tests.LibraryTest.test_suspend_invalidates_open_and_reactivated_session) ... ok
-test_technical_profile_has_no_editorial_access (documents.tests.LibraryTest.test_technical_profile_has_no_editorial_access) ... ok
-
+postgres (PostgreSQL) 16.2
+Creating test database for alias 'default'...
+.......................
 ----------------------------------------------------------------------
-Ran 15 tests in 2.230s
+Ran 23 tests in 5.567s
 
 OK
-Destroying test database for alias 'default' ('test_rovuma')...
- OK
+Destroying test database for alias 'default'...
+Found 23 test(s).
 System check identified no issues (0 silenced).

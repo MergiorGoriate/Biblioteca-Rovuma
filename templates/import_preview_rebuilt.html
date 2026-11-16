@@ -1,1 +1,14 @@
-{% extends "base.html" %}{% block content %}<section class="panel"><h1>Confirmar importação</h1><p>Origem: {{ batch.source }}</p>{% for row in rows %}<p>{{ row.numero }} — {{ row.validade }} — {{ row.email_validado }}</p>{% endfor %}{% if not batch.confirmed %}<form method="post">{% csrf_token %}<button>Confirmar importação</button></form>{% endif %}</section>{% endblock %}
+{% extends "base.html" %}
+{% block content %}
+<section class="panel">
+<h1>Confirmar importação</h1>
+<p>Origem {{ batch.source }}</p>
+<div class="table-scroll"><table>
+<thead><tr><th>Linha</th><th>Número</th><th>Validade</th><th>E-mail validado</th><th>Validação</th></tr></thead>
+<tbody>{% for row in rows %}
+<tr><td>{{ row.line }}</td><td>{{ row.numero }}</td><td>{{ row.validade }}</td><td>{{ row.email_validado }}</td><td>{% if row.error %}<span class="errorlist">{{ row.error }}</span>{% else %}Válida{% endif %}</td></tr>
+{% endfor %}</tbody></table></div>
+{% if can_confirm %}<form method="post">{% csrf_token %}<button class="primary">Confirmar importação</button></form>
+{% else %}<a href="{% url 'imports' %}">Carregar lista corrigida</a>{% endif %}
+</section>
+{% endblock %}

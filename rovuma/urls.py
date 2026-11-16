@@ -29,6 +29,7 @@ urlpatterns = [
     path("ler/<uuid:pk>/progresso/", reading.update, name="reading_update"),
     path("documento/<uuid:pk>/pdf/", document.pdf, name="pdf"),
     path("documento/<uuid:pk>/descarregar/", document.download, name="download"),
+    path("gestao/", catalog.management, name="management"),
     path("gestao/obras/", catalog.collection, name="collection"),
     path("gestao/obras/nova/", catalog.edit_work, name="new_work"),
     path("gestao/obras/<int:pk>/", catalog.manage_work, name="manage_work"),

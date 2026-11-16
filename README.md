@@ -1,6 +1,6 @@
 # Biblioteca Rovuma
 
-Aplicação Django para o catálogo privado da Biblioteca da Universidade Rovuma. O projecto usa PostgreSQL em produção e suporta SQLite numa instalação local. O nome e a iconografia da interface são apresentados como proposta de trabalho.
+Aplicação Django para o catálogo privado da Biblioteca da Universidade Rovuma. O projecto usa PostgreSQL em produção e suporta SQLite numa instalação local. A interface usa uma paleta azul e branca inspirada na Universidade Rovuma e um ícone próprio da aplicação.
 
 ## Executar localmente
 
@@ -16,7 +16,9 @@ python manage.py runserver 127.0.0.1:8000
 
 Abra [Biblioteca Rovuma](http://127.0.0.1:8000). Em Windows use `.venv\Scripts\activate` ou execute `.venv\Scripts\python.exe` directamente.
 
-As migrações criam a estrutura da base de dados. As contas são provisionadas separadamente em cada instalação. Para um primeiro acesso, peça ao responsável pela instalação que confirme o registo da conta e emita uma ligação de activação. A conta e a palavra-passe fictícias de uma instalação local não dão acesso ao ambiente de teste online.
+As migrações criam a estrutura da base de dados. Para explorar dados fictícios numa instalação local, defina `DEMO_STUDENT_PASSWORD` e `DEMO_STAFF_PASSWORD` no ambiente, com palavras-passe escolhidas por si, e execute `python manage.py demo_rovuma`. Entre como `000042` ou `bibliotecario.demo`, respectivamente. O comando só funciona em desenvolvimento com SQLite. O manual descreve a criação e atribuição das contas de serviço individuais para outras instalações.
+
+O painel do bibliotecário fica em `/gestao/`. É necessário entrar com uma conta autorizada para ver os módulos atribuídos.
 
 Para analisar novos documentos num ambiente local com ficheiros de teste, execute em dois terminais adicionais `python manage.py dispatch_documents` e `python -m documents.worker --spool var/spool`. Instale ClamAV com assinaturas e LibreOffice Writer. Para um ensaio com documentos próprios e inofensivos, a opção explícita `--development-no-antivirus` permite executar o teste estrutural sem ClamAV. A configuração de produção usa o processador em contentor, sem essa opção.
 

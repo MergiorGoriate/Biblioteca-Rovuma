@@ -20,6 +20,7 @@ class Work(models.Model):
     class Kind(models.TextChoices):
         BOOK = "book", "Livro"
         MANUAL = "manual", "Manual"
+        MANUSCRIPT = "manuscript", "Manuscrito"
         THESIS = "thesis", "Trabalho académico"
         ARTICLE = "article", "Artigo"
         OTHER = "other", "Outro"
@@ -38,6 +39,8 @@ class Work(models.Model):
 
     class Meta:
         permissions = (("manage_collection", "Gerir acervo"),)
+        indexes = [models.Index(fields=("state", "title"), name="work_state_title_idx"),
+                   models.Index(fields=("kind", "language"), name="work_kind_language_idx")]
     def __str__(self): return self.title
 
 
@@ -46,6 +49,9 @@ class Edition(models.Model):
     label = models.CharField(max_length=150)
     publisher = models.CharField(max_length=200, blank=True)
     year = models.PositiveIntegerField(null=True, blank=True)
+    class Meta:
+        indexes = [models.Index(fields=("year", "work"), name="edition_year_work_idx")]
+
     def __str__(self): return f"{self.work}: {self.label}"
 
 
@@ -60,15 +66,26 @@ class Identifier(models.Model):
 class Location(models.Model):
     name = models.CharField(max_length=200, unique=True)
     description = models.TextField(blank=True)
+    unit = models.CharField("Biblioteca ou unidade", max_length=160, blank=True)
+    room = models.CharField("Sala", max_length=80, blank=True)
+    shelf = models.CharField("Estante", max_length=80, blank=True)
+    level = models.CharField("Prateleira", max_length=80, blank=True)
+
+    @property
+    def placement(self):
+        return " · ".join(filter(None, (self.unit, self.room, self.shelf, self.level)))
+
     def __str__(self): return self.name
 
 
 class Copy(models.Model):
     class State(models.TextChoices):
         LOCAL = "local", "Consulta local"
+        MAINTENANCE = "maintenance", "Em manutenção"
         UNAVAILABLE = "unavailable", "Indisponível"
         REMOVED = "removed", "Retirado"
     edition = models.ForeignKey(Edition, related_name="copies", on_delete=models.PROTECT)
     location = models.ForeignKey(Location, on_delete=models.PROTECT)
+    condition = models.CharField("Condição de conservação", max_length=160, blank=True)
     inventory = models.CharField(max_length=100, unique=True)
     state = models.CharField(max_length=16, choices=State.choices, default=State.LOCAL)

@@ -1,4 +1,4 @@
-name: Validar reconstrução Django
+name: Validar Biblioteca Rovuma
 on:
   push:
     branches: [reconstrucao-modulos]
@@ -15,8 +15,8 @@ jobs:
       - run: pip install -r requirements.txt
       - name: Verificar configuração
         run: python manage.py check
-      - name: Gerar migrações de teste
-        run: python manage.py makemigrations accounts catalog audit documents reading --noinput
+      - name: Verificar migrações incluídas
+        run: python manage.py makemigrations --check --dry-run
       - name: Verificar migrações de teste
         run: python manage.py migrate --noinput
       - name: Executar testes

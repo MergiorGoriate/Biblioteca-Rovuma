@@ -1,11 +1,2 @@
-Operations to perform:
-  Apply all migrations: accounts, audit, auth, catalog, contenttypes, documents, reading, sessions
-Running migrations:
-  No migrations to apply.
-22 objects imported automatically (use -v 2 for details).
-
-Original íntegro depois de reaplicar migrações
 Processamentos reenfileirados: 0. Transferências parciais removidas: 0.
-22 objects imported automatically (use -v 2 for details).
-
-Restauro PostgreSQL e ficheiros: sessão, acesso protegido e SHA-256 verificados
+Restauro PostgreSQL e armazenamento privado: SHA-256, autorização e HTTP 206 verificados.

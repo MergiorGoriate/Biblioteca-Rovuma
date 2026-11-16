@@ -17,6 +17,16 @@ A separação de ambientes usa bases, volumes, segredos e domínios distintos. E
 
 No serviço web do ambiente de homologação, defina `EMAIL_BACKEND=rovuma.resend_backend.ResendEmailBackend`, guarde a chave de envio em `RESEND_API_KEY` e use em `DEFAULT_FROM_EMAIL` um remetente do domínio verificado no Resend. Desactive o rastreio de cliques no domínio de envio para preservar a ligação de recuperação. Com uma conta local de ensaio e um endereço validado, peça a recuperação pelo formulário, confirme a chegada da mensagem e use a ligação HTTPS para definir uma nova senha. Confirme que a nova senha permite iniciar sessão e que a ligação usada deixa de funcionar.
 
+## Tarefas agendadas
+
+Configure o agendador do servidor para executar diariamente, a partir da pasta do projecto, `docker compose exec -T web python manage.py clean_uploads` e `bash ops/backup.sh`. Programe a cópia para um período de baixa utilização, pois o procedimento suspende temporariamente os escritores. Encaminhe a saída para o registo operacional. Configure `BACKUP_ALERT_COMMAND` com o caminho de um executável de alerta, quando existir um canal aprovado, e configure a renovação de assinaturas do ClamAV.
+
+O proxy Caddy fornece o endereço observado da ligação através de `X-Rovuma-Client`, substituindo o cabeçalho recebido. Active `TRUST_ROVUMA_PROXY=1` apenas se o serviço Web for acessível exclusivamente por um proxy que sobrescreva esse cabeçalho. Noutras instalações, a aplicação utiliza o endereço da ligação apresentado pelo servidor de aplicação. Verifique o comportamento de limitação quando os utilizadores partilham um proxy ou uma rede.
+
+O carregamento aceita PDF e DOCX. O limite do documento é configurável e o envio usa partes de 1 MiB; o proxy aceita pedidos até 6 MB. A conversão de DOCX está sujeita aos limites de expansão do ZIP, de espaço temporário, de memória e de duração do processador. Documentos Word antigos em formato DOC e documentos com macros devem ser convertidos para DOCX sem macros antes do carregamento.
+
+Serviços de proxy ou de observabilidade geridos pelo alojamento podem registar o caminho das ligações de activação e recuperação independentemente do Django. O operador deve configurar a omissão desses caminhos e restringir o acesso aos registos do alojamento antes de utilizar dados reais.
+
 ## Cópias e restauro
 
 O script `ops/backup.sh` usa Restic para deduplicar e encriptar os dados num repositório externo. Configure `RESTIC_REPOSITORY`, `RESTIC_PASSWORD_FILE` e permissões de escrita restritas. Inicialize com `restic init` uma vez. Programe a execução diária fora das horas de maior utilização, por exemplo com cron. Registe a saída e, se houver, configure `BACKUP_ALERT_COMMAND` como o caminho para um programa que notifique falhas. A retenção usa `KEEP_DAILY`, `KEEP_WEEKLY` e `KEEP_MONTHLY`. O script interrompe temporariamente os escritores da aplicação para obter uma cópia coerente e relança-os antes de fazer a transferência.
