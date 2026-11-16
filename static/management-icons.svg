@@ -14,4 +14,6 @@
   <symbol id="arrow" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
   <symbol id="external" viewBox="0 0 24 24"><path d="M13 4h7v7m0-7-9 9m7 1v6H4V6h6"/></symbol>
   <symbol id="chevron" viewBox="0 0 24 24"><path d="m7 10 5 5 5-5"/></symbol>
+  <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
+  <symbol id="moon" viewBox="0 0 24 24"><path d="M20.4 15.1A8.8 8.8 0 0 1 8.9 3.6a9 9 0 1 0 11.5 11.5Z"/></symbol>
 </svg>

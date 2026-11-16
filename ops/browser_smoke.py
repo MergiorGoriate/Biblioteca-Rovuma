@@ -59,6 +59,12 @@ with sync_playwright() as playwright:
         expect(page).to_have_url(base + "/admin/")
         expect(page.locator("body")).to_have_css("color-scheme", "dark")
         assert page.locator("footer.site-footer").count() == 0
+        page.get_by_role("button", name="Activar modo claro").click()
+        expect(page.locator("body")).to_have_css("color-scheme", "light")
+        expect(page.locator("main")).to_have_css("background-color", "rgb(251, 252, 254)")
+        page.reload()
+        expect(page.locator("body")).to_have_css("color-scheme", "light")
+        expect(page.get_by_role("button", name="Activar modo escuro")).to_be_visible()
         navigation = page.get_by_role("navigation", name="Navegação administrativa")
         menu = page.get_by_role("button", name="Menu administrativo")
         if mobile:
@@ -79,6 +85,11 @@ with sync_playwright() as playwright:
         navigation.get_by_role("link", name="Obras e edições").click()
         expect(page.get_by_role("heading", name="Gestão do acervo")).to_be_visible()
         expect(page.get_by_text("1 obra", exact=True)).to_be_visible()
+        expect(page.locator("body")).to_have_css("color-scheme", "light")
+        page.get_by_role("button", name="Activar modo escuro").press("Enter")
+        expect(page.locator("body")).to_have_css("color-scheme", "dark")
+        page.reload()
+        expect(page.locator("body")).to_have_css("color-scheme", "dark")
         if mobile:
             menu.click()
         page.get_by_role("link", name="Nova obra", exact=True).click()
@@ -111,6 +122,6 @@ with sync_playwright() as playwright:
         navigation.get_by_role("link", name="Estudantes", exact=True).click()
         expect(page.get_by_role("link", name="000042")).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
-        print(f"{width} × {height}: entrada do portal, PDF, marcador, entrada administrativa, barra lateral, filtros do acervo, inventário e fila validados.", flush=True)
+        print(f"{width} × {height}: entrada do portal, PDF, marcador, entrada administrativa, alternância e persistência do tema, barra lateral, filtros do acervo, inventário e fila validados.", flush=True)
         context.close()
         browser.close()

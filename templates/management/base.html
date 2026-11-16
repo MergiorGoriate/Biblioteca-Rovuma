@@ -1,5 +1,8 @@
 {% extends "base.html" %}{% load static %}
-{% block styles %}<link rel="stylesheet" href="{% static 'management.css' %}">{% endblock %}
+{% block styles %}
+<script src="{% static 'management-theme.js' %}"></script>
+<link rel="stylesheet" href="{% static 'management.css' %}">
+{% endblock %}
 {% block body_class %}management{% endblock %}
 {% block header %}
 <a class="brand" href="{% url 'management' %}"><span>Biblioteca Rovuma</span></a>
@@ -11,6 +14,11 @@
 </form>
 {% endif %}
 <div class="management-account">
+  <button type="button" id="management-theme-toggle" class="plain management-theme-toggle" aria-label="Activar modo claro" title="Activar modo claro" hidden>
+    <span class="theme-sun">{% include "management/icon.html" with icon="sun" %}</span>
+    <span class="theme-moon">{% include "management/icon.html" with icon="moon" %}</span>
+    <span class="theme-label" aria-hidden="true">Claro</span>
+  </button>
   {% if nav_student or nav_editor %}<a class="secondary" href="{% url 'portal' %}">{% include "management/icon.html" with icon="external" %}Abrir portal</a>{% endif %}
   {% include 'logout_form.html' %}
 </div>
