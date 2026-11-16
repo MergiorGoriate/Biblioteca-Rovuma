@@ -30,3 +30,37 @@ jobs:
           export POSTGRES_PASSWORD="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
           export POSTGRES_BOOTSTRAP_PASSWORD="$(python -c 'import secrets; print(secrets.token_urlsafe(32))')"
           docker compose config --quiet
+  processor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      BIBLIOTECA_HOST: biblioteca.example.invalid
+      DJANGO_ALLOWED_HOSTS: biblioteca.example.invalid
+      COMPOSE_FILE: compose.yaml:ops/compose.processor-ci.yaml
+      COMPOSE_PROJECT_NAME: rovuma-processador-ci
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validar análise e conversão isoladas
+        run: |
+          export DJANGO_SECRET_KEY="$(openssl rand -hex 32)"
+          export POSTGRES_PASSWORD="$(openssl rand -hex 32)"
+          export POSTGRES_BOOTSTRAP_PASSWORD="$(openssl rand -hex 32)"
+          docker compose build dispatcher processor
+          docker compose up -d --wait db
+          docker compose run --rm migrate
+          docker compose run --rm --no-deps --entrypoint sh processor -ec '
+            printf "%s\n" "Rovuma_sonda_deteccao_v1" > /tmp/sonda.txt
+            status=0
+            /opt/clamav-ci/clamscan --no-summary /tmp/sonda.txt || status=$?
+            test "$status" -eq 1
+          '
+          version=$(docker compose run -T --rm --no-deps dispatcher python -m ops.verify_document_pipeline)
+          docker compose run --rm --no-deps dispatcher python manage.py dispatch_documents --once
+          docker compose run --rm --no-deps processor env PATH=/opt/clamav-ci:/usr/local/bin:/usr/bin:/bin python -m documents.worker --spool /data/spool --once
+          docker compose run --rm --no-deps dispatcher python manage.py dispatch_documents --once
+          docker compose run --rm --no-deps dispatcher python -m ops.verify_document_pipeline "$version"
+      - name: Remover ambiente descartável
+        if: always()
+        run: |
+          export DJANGO_SECRET_KEY=unused POSTGRES_PASSWORD=unused POSTGRES_BOOTSTRAP_PASSWORD=unused
+          docker compose down --volumes --remove-orphans

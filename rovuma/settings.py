@@ -67,6 +67,7 @@ SECURE_HSTS_SECONDS = 31536000 if not DEBUG else 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False  # É gerido apenas o host da biblioteca.
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "strict-origin"
+CSRF_FAILURE_VIEW = "accounts.views.csrf_failure"
 X_FRAME_OPTIONS = "DENY"
 PASSWORD_RESET_TIMEOUT = 1800
 EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.locmem.EmailBackend" if DEBUG

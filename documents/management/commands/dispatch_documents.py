@@ -10,6 +10,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from documents.models import Job, Version
+from documents.remote_processor import Unavailable, process
 from documents.storage import original, reading_pdf
 
 
@@ -64,6 +65,37 @@ def advance(job):
     job.save(update_fields=["state", "error", "changed"])
 
 
+def advance_remote(job, url, token):
+    version = job.version
+    path = reading_pdf(version)
+    pending = path.with_name("remote-reader.tmp")
+    if job.state == Job.State.WAITING:
+        job.state = Job.State.SENT
+        job.save(update_fields=["state", "changed"])
+    try:
+        result = process(url, token, original(version.pk), version.file_format, pending)
+        if result.get("error"):
+            job.state, job.error = Job.State.ERROR, result["error"]
+        else:
+            if version.file_format == "docx":
+                pending.replace(path)
+            version.sha256 = result["sha256"]
+            version.pages = result["pages"]
+            version.state = Version.State.REVIEW
+            version.save(update_fields=["pages", "sha256", "state"])
+            job.state, job.error = Job.State.DONE, ""
+    except Unavailable:
+        if job.changed >= timezone.now() - timedelta(minutes=20):
+            return False
+        job.state, job.error = Job.State.ERROR, "O processador privado não respondeu dentro do tempo máximo."
+    except (OSError, ValueError, KeyError, TypeError):
+        job.state, job.error = Job.State.ERROR, "Não foi possível validar ou guardar o resultado do processador privado."
+    finally:
+        pending.unlink(missing_ok=True)
+    job.save(update_fields=["state", "error", "changed"])
+    return True
+
+
 class Command(BaseCommand):
     help = "Envia documentos ao processador e recolhe os resultados."
 
@@ -71,13 +103,21 @@ class Command(BaseCommand):
         parser.add_argument("--once", action="store_true")
 
     def handle(self, *args, **options):
+        import os
+
+        url = os.environ.get("ROVUMA_PROCESSOR_URL")
+        token = os.environ.get("ROVUMA_PROCESSOR_TOKEN", "")
         while True:
             ids = list(Job.objects.filter(state__in=[Job.State.WAITING, Job.State.SENT]).order_by("changed").values_list("pk", flat=True))
             for pk in ids:
                 with transaction.atomic():
                     job = Job.objects.select_for_update().get(pk=pk)
                     if job.state in {Job.State.WAITING, Job.State.SENT}:
-                        advance(job)
+                        if url:
+                            if not advance_remote(job, url, token):
+                                break
+                        else:
+                            advance(job)
             if options["once"]:
                 return
             time.sleep(3)

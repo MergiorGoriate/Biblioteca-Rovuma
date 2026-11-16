@@ -1,0 +1,30 @@
+{% extends "management/base.html" %}
+{% block title %}Exemplares físicos · Biblioteca Rovuma{% endblock %}
+{% block content %}
+<div class="section-head">
+  <h1>Exemplares físicos</h1>
+  <div class="actions"><a class="secondary" href="{% url 'collection' %}">Abrir obras e edições</a></div>
+</div>
+<section class="panel">
+  <form class="dashboard-filter" method="get">
+    <label>Inventário, obra ou localização<input name="q" value="{{ q }}" maxlength="150"></label>
+    <label>Estado<select name="estado"><option value="">Todos</option>
+    {% for value, label in states %}<option value="{{ value }}"{% if state == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select></label>
+    <button class="secondary">Filtrar</button>
+  </form>
+  {% for copy in page %}
+  <article class="row">
+    <div class="inventory-record break">
+      <h2 class="queue-heading">{{ copy.edition.work.title }}</h2>
+      <p class="small muted">{{ copy.edition.label }} · {{ copy.inventory }}</p>
+      <p>{{ copy.location.name }}{% if copy.location.placement %} · {{ copy.location.placement }}{% endif %}</p>
+      <span class="tag">{{ copy.get_state_display }}</span>
+      {% if copy.condition %}<span class="small muted">{{ copy.condition }}</span>{% endif %}
+    </div>
+    <a class="secondary" href="{% url 'edit_related' 'exemplar' copy.edition_id copy.pk %}">Editar exemplar</a>
+  </article>
+  {% empty %}<p class="muted">Nenhum exemplar corresponde aos filtros.</p>{% endfor %}
+  {% include "pagination.html" %}
+</section>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Activar conta · Biblioteca Rovuma{% endblock %}
+{% block content %}
+<section class="panel form-panel">
+  <h1>Activar conta</h1>
+  <p>Utilizador <strong>{{ account.username }}</strong></p>
+  {% if form.errors %}
+  <p class="notice error" role="alert">A palavra-passe ainda não foi guardada. Verifique os campos e volte a submeter o formulário.</p>
+  {% endif %}
+  <form method="post">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    {% for field in form %}
+      <p>{{ field.label_tag }} {{ field }}</p>
+      {{ field.errors }}
+      {% if forloop.first and field.help_text %}<div class="helptext" id="{{ field.auto_id }}_helptext">{{ field.help_text|safe }}</div>{% endif %}
+    {% endfor %}
+    <button class="primary">Guardar palavra-passe</button>
+  </form>
+</section>
+{% endblock %}

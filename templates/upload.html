@@ -1,4 +1,4 @@
-{% extends "base.html" %}{% load static %}{% block content %}<a class="back" href="{% url 'manage_work' edition.work_id %}">← {{ edition.work.title }}</a>
+{% extends "management/base.html" %}{% load static %}{% block content %}<a class="back" href="{% url 'manage_work' edition.work_id %}">← {{ edition.work.title }}</a>
 <section class="panel form-panel"><h1>Carregar documento</h1><p class="muted">{{ edition.label }} · PDF ou DOCX · limite {{ limit|filesizeformat }}</p>
 <form id="upload" data-start="{% url 'start_upload' edition.pk %}" data-key="{{ user.pk }}.{{ edition.pk }}">{% csrf_token %}{{ form.as_p }}
 <p><label for="source">Ficheiro</label><input id="source" type="file" accept=".pdf,.docx" required></p>

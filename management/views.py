@@ -4,14 +4,13 @@ from django.shortcuts import render
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 
-from accounts.access import EDITOR, has, permission, require
+from accounts.access import EDITOR, can_manage, has, permission, require
 from accounts.models import User
 from audit.views import visible_events
 from catalog.models import Copy, Work
 from documents.models import Job, Version
 
 
-MANAGEMENT_PERMISSIONS = (EDITOR, "accounts.manage_credential", "accounts.correct_number", "audit.view_event")
 DOCUMENT_FILTERS = {
     "revisao": ("Pendentes de revisão", Q(state=Version.State.REVIEW, job__state=Job.State.DONE)),
     "processamento": ("Em processamento", Q(job__state__in=(Job.State.WAITING, Job.State.SENT))),
@@ -19,11 +18,7 @@ DOCUMENT_FILTERS = {
 }
 
 
-def can_manage(user):
-    return any(has(user, code) for code in MANAGEMENT_PERMISSIONS)
-
-
-@require(can_manage)
+@require(can_manage, login_url="management_login")
 @never_cache
 def dashboard(request):
     context = {}

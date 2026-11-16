@@ -7,7 +7,7 @@ from django import forms
 from django.contrib import messages
 from django.contrib.auth import logout
 from django.contrib.auth.tokens import PasswordResetTokenGenerator
-from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordResetView
+from django.contrib.auth.views import LoginView, PasswordChangeView, PasswordResetView, redirect_to_login
 from django.contrib.auth.forms import AuthenticationForm, PasswordResetForm, SetPasswordForm
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
@@ -17,10 +17,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
+from django.views.csrf import csrf_failure as default_csrf_failure
 
 from audit.models import record
-from .access import has, permission, require, student
+from .access import can_manage, has, permission, require, student
 from .importing import validate_number, validate_rows
 from .models import ImportBatch, User
 from .throttling import admit
@@ -47,6 +48,26 @@ class LocalLogin(ThrottledFormView, LoginView):
     authentication_form = LocalAuthenticationForm
     rate_scope = "login"
     rate_limit = 20
+
+
+class ManagementAuthenticationForm(LocalAuthenticationForm):
+    def confirm_login_allowed(self, user):
+        super().confirm_login_allowed(user)
+        if not can_manage(user):
+            raise self.get_invalid_login_error()
+
+
+class ManagementLogin(LocalLogin):
+    template_name = "management/login.html"
+    authentication_form = ManagementAuthenticationForm
+    next_page = reverse_lazy("management")
+    def get(self, request, *args, **kwargs):
+        if can_manage(request.user):
+            destination = self.get_success_url()
+            if destination.split("?", 1)[0].rstrip("/") == request.path.rstrip("/"):
+                destination = self.get_default_redirect_url()
+            return redirect(destination)
+        return super().get(request, *args, **kwargs)
 
 
 @require_POST
@@ -92,9 +113,20 @@ class LocalReset(ThrottledFormView, PasswordResetView):
 
 class LocalChange(PasswordChangeView):
     template_name = "registration/password_change_form.html"
+    management_area = False
     success_url = reverse_lazy("password_change_done")
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.management_area:
+            context["layout"] = "management/base.html"
+        return context
+
     def dispatch(self, request, *args, **kwargs):
+        if self.management_area and not request.user.is_authenticated:
+            return redirect_to_login(request.get_full_path(), login_url=reverse_lazy("management_login"))
+        if self.management_area and not can_manage(request.user):
+            raise PermissionDenied
         if request.user.is_authenticated and request.user.identity_source != User.Identity.LOCAL:
             raise PermissionDenied
         return super().dispatch(request, *args, **kwargs)
@@ -106,6 +138,14 @@ def profile(request):
 
 
 @never_cache
+def csrf_failure(request, reason=""):
+    if request.resolver_match and request.resolver_match.url_name == "activate":
+        return render(request, "registration/activation_retry.html", status=403)
+    return default_csrf_failure(request, reason=reason)
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
 def activate(request, token):
     digest = hashlib.sha256(token.encode()).hexdigest()
     eligible = User.objects.filter(activation_token_hash=digest, activation_expires__gt=timezone.now(),
@@ -121,13 +161,14 @@ def activate(request, token):
             user.activation_expires = None
             user.session_version += 1
             user.save()
-            return redirect("login")
-    response = render(request, "form.html", {"heading": "Activar conta", "form": form})
-    response["Referrer-Policy"] = "no-referrer"
-    return response
+            destination = "management_login" if can_manage(user) else "login"
+            messages.success(request, "Palavra-passe guardada. Já pode iniciar sessão.")
+            return redirect(destination)
+    return render(request, "registration/activate.html", {"account": user, "form": form})
 
 
-@require(lambda user: has(user, "accounts.manage_credential") or has(user, "accounts.correct_number"))
+@require(lambda user: has(user, "accounts.manage_credential") or has(user, "accounts.correct_number"),
+         login_url="management_login")
 def students(request):
     q = request.GET.get("q", "").strip()[:64]
     state = request.GET.get("estado", "")
@@ -181,9 +222,7 @@ def credential(request, pk):
                 activation_link = request.build_absolute_uri(reverse_lazy("activate", kwargs={"token": token}))
             else:
                 messages.error(request, "Confirme o estado da conta e indique a justificação para confirmar a identidade, suspender ou reactivar.")
-    response = render(request, "credential_rebuilt.html", {"account": account, "activation_link": activation_link})
-    response["Referrer-Policy"] = "no-referrer"
-    return response
+    return render(request, "credential_rebuilt.html", {"account": account, "activation_link": activation_link})
 
 
 @permission("accounts.correct_number")

@@ -419,3 +419,68 @@ class LibraryTest(TestCase):
         draft = Work.objects.create(title="Obra em preparação", language="Português")
         response = self.editor.get(self.url("collection"), {"estado": "draft"})
         self.assertEqual(list(response.context["page"]), [draft])
+
+    def test_portal_and_management_have_distinct_navigation_and_permissions(self):
+        from django.contrib.auth import SESSION_KEY
+        draft = Work.objects.create(title="Rascunho exclusivo da gestão", language="Português")
+        self.assertRedirects(self.client.get(self.url("management")), self.url("management_login") + "?next=/admin/")
+        self.assertContains(self.client.get(self.url("management_login")), "Entre com a sua conta de bibliotecário")
+        self.assertEqual(self.client.post(self.url("management_login"), {"username": "0007", "password": "Test!Student"}).status_code, 200)
+        self.assertNotIn(SESSION_KEY, self.client.session)
+        self.enter()
+        portal = self.client.get(self.url("portal"))
+        self.assertContains(portal, "Portal da biblioteca")
+        self.assertNotContains(portal, "Painel administrativo")
+        self.assertEqual(self.client.get(self.url("management")).status_code, 403)
+        self.assertEqual(self.client.get(self.url("management_password")).status_code, 403)
+        self.assertContains(self.editor.get(self.url("portal")), "Painel administrativo")
+        self.assertNotContains(self.editor.get(self.url("catalogue")), draft.title)
+        self.assertEqual(self.editor.get(self.url("work", draft.pk)).status_code, 404)
+        self.assertContains(self.editor.get(self.url("collection")), draft.title)
+        management = self.editor.get(self.url("management"))
+        self.assertContains(management, "Navegação administrativa")
+        self.assertNotContains(management, "Minhas leituras")
+        preview = self.editor.get(self.url("reader_preview", self.version.pk))
+        self.assertContains(preview, "Navegação administrativa")
+        self.assertContains(preview, "Gestão da obra")
+        self.assertEqual(self.client.get(self.url("reader_preview", self.version.pk)).status_code, 403)
+        self.staff.set_password("Staff test password 927!")
+        self.staff.save()
+        result = Client().post(self.url("management_login"), {"username": self.staff.username, "password": "Staff test password 927!"})
+        self.assertEqual(result.url, self.url("management"))
+
+    def test_legacy_management_redirect_preserves_route_query_and_method(self):
+        for previous, target in [
+            ("/gestao", "/admin/"),
+            ("/gestao/entrar/?next=%2Fgestao%2F", "/admin/entrar/?next=%2Fgestao%2F"),
+            ("/gestao/obras/?estado=draft&page=2", "/admin/obras/?estado=draft&page=2"),
+        ]:
+            response = self.client.get(previous)
+            self.assertEqual(response.status_code, 308)
+            self.assertEqual(response.url, target)
+
+        result = self.editor.post(f"/gestao/obras/{self.work.pk}/estado/", {"action": "archive"}, follow=True)
+        self.assertEqual(result.redirect_chain[0], (self.url("work_state", self.work.pk), 308))
+        self.work.refresh_from_db()
+        self.assertEqual(self.work.state, Work.State.ARCHIVED)
+
+    def test_physical_inventory_uses_existing_editor_permissions(self):
+        location = Location.objects.create(name="Depósito", room="Sala A")
+        copy = Copy.objects.create(edition=self.edition, location=location, inventory="DEPOSITO-18")
+        Copy.objects.create(edition=self.edition, location=location, inventory="DEPOSITO-19",
+                            state=Copy.State.MAINTENANCE)
+        route = self.url("inventory")
+
+        self.assertRedirects(self.client.get(route), self.url("management_login") + "?next=/admin/exemplares/")
+        self.enter()
+        self.assertEqual(self.client.get(route).status_code, 403)
+        result = self.editor.get(route, {"q": "Sala", "estado": Copy.State.LOCAL})
+        self.assertEqual(list(result.context["page"]), [copy])
+        result = self.editor.get(route, {"q": "Depósito", "estado": Copy.State.LOCAL})
+        self.assertEqual(list(result.context["page"]), [copy])
+        self.assertContains(result, "Sala A")
+        self.assertContains(result, reverse("edit_related", args=["exemplar", self.edition.pk, copy.pk]))
+        self.assertContains(result, "Importar estudantes")
+        self.assertRedirects(self.editor.get(self.url("management_login")), self.url("management"))
+        self.assertRedirects(self.editor.get(self.url("management_login"), {"next": self.url("management_login")}),
+                             self.url("management"))

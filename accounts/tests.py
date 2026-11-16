@@ -4,7 +4,7 @@ from urllib.parse import urlsplit
 
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import TestCase, override_settings
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
 from accounts.models import User
@@ -35,7 +35,7 @@ class StaffInvitationTests(TestCase):
         self.assertContains(self.client.post(link, {"new_password1": "curta", "new_password2": "curta"}),
                             "8 car", html=False)
         password = "Frase de ensaio comprida e individual 154!"
-        self.assertRedirects(self.client.post(link, {"new_password1": password, "new_password2": password}), reverse("login"))
+        self.assertRedirects(self.client.post(link, {"new_password1": password, "new_password2": password}), reverse("management_login"))
         self.assertEqual(self.client.get(link).status_code, 404)
         self.assertRedirects(self.client.post(reverse("login"), {"username": account.username, "password": password}),
                              reverse("home"), fetch_redirect_response=False)
@@ -59,3 +59,22 @@ class StaffInvitationTests(TestCase):
         with self.assertRaises(CommandError):
             self.invite(url_base="https://outra-biblioteca.example.invalid")
         self.assertFalse(User.objects.get(username="existente").groups.exists())
+
+
+    @override_settings(SECURE_REFERRER_POLICY="strict-origin", CSRF_COOKIE_SECURE=True)
+    def test_invitation_form_accepts_https_same_origin_referer_without_token_path(self):
+        link = self.invite()
+        client = Client(enforce_csrf_checks=True)
+        response = client.get(link, secure=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers["Referrer-Policy"], "strict-origin")
+        self.assertTrue(response.cookies["csrftoken"]["secure"])
+        password = "Frase de activação apenas de ensaio 154!"
+        values = {"new_password1": password, "new_password2": password}
+        failure = client.post(link, values, secure=True, HTTP_REFERER="https://testserver/")
+        self.assertContains(failure, "Reabrir o formulário", status_code=403)
+        values["csrfmiddlewaretoken"] = response.cookies["csrftoken"].value
+        self.assertEqual(client.post(link, values, secure=True, HTTP_ORIGIN="https://outro.example.invalid").status_code, 403)
+        self.assertRedirects(client.post(link, values, secure=True, HTTP_REFERER="https://testserver/"),
+                             reverse("management_login"), fetch_redirect_response=False)
+        self.assertEqual(client.get(link, secure=True).status_code, 404)

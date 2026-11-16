@@ -1,11 +1,11 @@
-{% extends "base.html" %}{% block content %}<a class="back" href="{% url 'collection' %}">← Gestão do acervo</a>
+{% extends "management/base.html" %}{% block content %}<a class="back" href="{% url 'collection' %}">← Gestão do acervo</a>
 <div class="section-head"><div><p class="eyebrow">{{ work.get_state_display }}</p><h1>{{ work.title }}</h1></div><a class="secondary" href="{% url 'edit_work' work.pk %}">Editar dados</a></div>
 <section class="panel">
 <div class="actions">
 <form method="post" action="{% url 'work_state' work.pk %}">{% csrf_token %}
 {% if work.state != 'published' %}<button class="primary" name="action" value="publish">Publicar obra</button>{% else %}<button class="secondary" name="action" value="withdraw">Retirar obra</button>{% endif %}
 {% if work.state != 'archived' %}<button class="secondary" name="action" value="archive">Arquivar obra</button>{% endif %}
-</form><a href="{% url 'work' work.pk %}">Ver ficha</a></div></section>
+</form>{% if work.state == "published" %}<a href="{% url 'work' work.pk %}">Ver ficha no portal</a>{% endif %}</div></section>
 <section class="panel section"><div class="section-head"><h2>Edições e exemplares</h2><a href="{% url 'new_related' 'edicao' work.pk %}">Nova edição</a></div>
 {% for ed in work.editions.all %}
 <div class="record"><div class="section-head"><div><strong>{{ ed.label }}</strong> {{ ed.publisher }} {{ ed.year|default_if_none:"" }}</div><div class="actions"><a href="{% url 'edit_related' 'edicao' work.pk ed.pk %}">Editar edição</a><a href="{% url 'upload' ed.pk %}">Carregar documento</a></div></div>
@@ -23,7 +23,7 @@
 <form method="post" action="{% url 'editorial' version.pk %}">{% csrf_token %}
 {% if version.job.state == 'error' %}<button class="secondary" name="action" value="retry">Tentar novamente</button>
 {% elif version.job.state == 'done' %}
-<a href="{% url 'reader' version.pk %}">Pré-visualizar</a>
+<a href="{% url 'reader_preview' version.pk %}">Pré-visualizar</a>
 {% if version.state == 'published' %}<div class="actions"><button class="secondary" name="action" value="withdraw">Retirar versão</button><button class="secondary" name="action" value="archive">Arquivar versão</button></div>
 {% else %}<p><label class="check"><input type="checkbox" name="checked" value="yes" required> Confirmei a legibilidade e a integridade do documento.</label></p><button class="primary" name="action" value="publish">Publicar versão</button>{% endif %}
 {% endif %}</form></article>
