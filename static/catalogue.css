@@ -1,0 +1,171 @@
+/* The catalogue shares the administration shell with its own library palette. */
+.reader-portal {
+  --admin-accent: #9fc5ff;
+  --admin-accent-hover: #bed8ff;
+  --admin-accent-ink: #11274c;
+  --portal-cover-mat: #242a37;
+}
+[data-management-theme="light"] .reader-portal {
+  --admin-accent: #254c8b;
+  --admin-accent-hover: #19386d;
+  --admin-accent-ink: #fff;
+  --portal-cover-mat: #e6ecf5;
+}
+/* The viewport owns the scrollbar. The header's solid backdrop masks the gaps around the toolbar. */
+html:has(.reader-portal) {
+  scrollbar-width: thin;
+  scrollbar-color: #a4adba #f5f6f9;
+  scroll-padding-block-start: 105px;
+}
+html[data-management-theme="dark"]:has(.reader-portal) { scrollbar-color: #696971 #141416; }
+html:has(.catalogue-page) { scroll-padding-block-start: 155px; }
+.reader-portal .management-shell { display: contents; }
+.reader-portal .management-content {
+  min-height: 0;
+  padding-top: clamp(18px, 3vw, 34px);
+}
+.reader-portal .management-content:focus-visible {
+  outline: 2px solid var(--blue);
+  outline-offset: -2px;
+}
+.reader-portal .management-navigation a { overflow-wrap: anywhere; }
+.reader-portal .theme-label { white-space: nowrap; }
+.reader-portal .site-header .brand { font-weight: 730; }
+.catalogue-back-to-top {
+  position: fixed;
+  right: max(22px, calc(env(safe-area-inset-right) + 12px));
+  bottom: max(22px, calc(env(safe-area-inset-bottom) + 12px));
+  z-index: 3;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid #c5cad3;
+  border-radius: 50%;
+  color: #1d2433;
+  background: #fff;
+  box-shadow: 0 3px 12px #141b2938;
+}
+.catalogue-back-to-top:not([hidden]) { display: grid; }
+.catalogue-back-to-top:hover { background: #eef2f8; }
+.catalogue-back-to-top .admin-icon { width: 23px; height: 23px; transform: rotate(-90deg); }
+.catalogue-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 16px 12px;
+}
+.catalogue-filter { position: relative; min-width: 0; }
+.catalogue-filter:not(.catalogue-year) { flex: 0 1 clamp(126px, 15vw, 183px); }
+.catalogue-filter .admin-icon {
+  position: absolute;
+  z-index: 1;
+  inset-inline-start: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.catalogue-filter .admin-icon:last-child { inset-inline: auto 11px; }
+.reader-portal .catalogue-filter :is(select, input) {
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  min-height: 40px;
+  padding-inline: 35px 12px;
+  background: var(--pale);
+  font-size: .88rem;
+}
+.reader-portal .catalogue-filter select {
+  appearance: none;
+  padding-inline-end: 34px;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+.reader-portal .catalogue-filter [data-active="true"] {
+  border-color: var(--blue);
+  background: var(--soft-blue);
+}
+.catalogue-year { width: 105px; }
+.catalogue-filters :is(.primary, .plain) { min-height: 40px; font-size: .84rem; border-radius: 100px; }
+.catalogue-filters .plain { padding-inline: 9px; }
+.catalogue-results-heading h1 { font-size: clamp(1.4rem, 3vw, 1.85rem); }
+.catalogue-acervo-note { margin-block: 14px 0; }
+.portal-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.13fr) minmax(0, 1fr);
+  min-height: 255px;
+  overflow: hidden;
+  background: #19345e;
+  color: #fff;
+  border: 1px solid #19345e;
+  border-radius: 18px;
+}
+.portal-hero-content { padding: clamp(22px, 4vw, 45px); align-self: center; }
+.portal-hero h1 { margin-bottom: 13px; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2.15rem, 4.6vw, 3.6rem); letter-spacing: -.04em; }
+.portal-hero p { max-width: 39ch; margin-bottom: 18px; color: #e2edff; font-size: 1rem; }
+.portal-hero-image { display: block; width: 100%; height: 100%; min-height: 0; max-height: 330px; object-fit: cover; }
+.portal-shortcuts { display: flex; gap: 8px 18px; flex-wrap: wrap; margin-top: 13px; }
+.portal-shortcuts a { color: #e2edff; font-size: .9rem; font-weight: 620; }
+.portal-shortcuts span { margin-left: 3px; }
+.portal-hero :focus-visible { outline-color: #f6d88d; box-shadow: none; }
+.portal-section { margin-block: 29px 0; }
+.portal-section .section-head { margin-bottom: 13px; }
+.portal-section .section-head a { font-size: .9rem; font-weight: 650; }
+.portal-book-grid { display: grid; gap: 16px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.portal-book-grid > .empty { grid-column: 1 / -1; }
+.portal-book { box-shadow: 0 2px 4px #12326109; min-width: 0; }
+.portal-book .cover { height: clamp(140px, 19vw, 222px); background: var(--portal-cover-mat); }
+.portal-book .cover img { object-fit: contain; }
+.portal-book .card-body { padding: 13px 14px 16px; }
+.portal-book h3 { font-size: 1.05rem; overflow-wrap: anywhere; }
+.portal-book h3 a { color: var(--ink); }
+.portal-book h3 a:hover { color: var(--blue); }
+.portal-book-kind { margin-bottom: 5px; font-size: .75rem; color: var(--muted); font-weight: 640; }
+.portal-book-kind span { margin-left: 4px; }
+.portal-book .tags { margin-top: 10px; gap: 4px; }
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .portal-book .cover { overflow: hidden; }
+  .portal-book .cover img { transition: transform 220ms ease-out; }
+  .portal-book:is(:hover, :focus-within) .cover img { transform: scale(1.035); }
+}
+@media (max-width: 880px) {
+  .portal-hero { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+  .portal-book-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 740px) {
+  html:has(.reader-portal) { scroll-padding-block-start: 126px; }
+  html:has(.catalogue-page) { scroll-padding-block-start: 268px; }
+  .reader-portal .management-rail { padding: 5px; margin: 0; }
+  .reader-portal .management-navigation { display: flex; flex-wrap: wrap; gap: 3px; }
+  .reader-portal .management-navigation a {
+    flex: 1 0 53px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 3px;
+    min-height: 49px;
+    line-height: 1.1;
+    text-align: center;
+    font-size: .71rem;
+  }
+  .reader-portal .management-navigation a .admin-icon { width: 19px; height: 19px; }
+  .reader-portal .management-navigation a[aria-current=page] { box-shadow: inset 0 -2px var(--admin-accent); }
+  .catalogue-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 0 12px 10px;
+  }
+  .catalogue-year { width: auto; }
+  .catalogue-filters .plain { justify-self: start; }
+}
+@media (max-width: 610px) {
+  .portal-hero { grid-template-columns: minmax(0, 1fr); }
+  .portal-hero-image { height: 140px; object-position: 50% 66%; }
+  .portal-hero p { margin-bottom: 18px; }
+  .portal-shortcuts { margin-top: 14px; }
+  .portal-book-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px; }
+}

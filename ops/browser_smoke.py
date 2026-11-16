@@ -1,6 +1,7 @@
 """Executar com Playwright instalado e o servidor local de demonstração activo."""
 import os
 import re
+from pathlib import Path
 
 from playwright.sync_api import expect, sync_playwright
 
@@ -13,16 +14,135 @@ with sync_playwright() as playwright:
         browser = playwright.chromium.launch(executable_path=executable, args=args)
         context = browser.new_context(viewport={"width": width, "height": height}, is_mobile=mobile, has_touch=mobile)
         page = context.new_page()
+        page.add_init_script("""
+            window.portalAnimatedElements = [];
+            const animate = Element.prototype.animate;
+            Element.prototype.animate = function (...args) {
+                window.portalAnimatedElements.push(this);
+                return animate.apply(this, args);
+            };
+        """)
         page.on("pageerror", lambda error: print(f"JavaScript: {error}", flush=True))
         page.on("console", lambda entry: print(f"Navegador: {entry.text}", flush=True) if entry.type == "error" else None)
         page.goto(base + "/entrar/")
+        login_panel = page.get_by_role("region", name="Iniciar sessão")
+        expect(login_panel.get_by_role("link", name="Recuperar palavra-passe")).to_have_attribute("href", "/conta/recuperar/")
+        expect(login_panel.get_by_role("link", name="Entrada da administração")).to_have_attribute("href", "/admin/entrar/")
+        expect(login_panel.get_by_role("button", name="Entrar")).to_be_in_viewport(ratio=1)
+        library_photo = page.locator(".entry-photo img")
+        expect(library_photo).to_have_js_property("naturalWidth", 990)
+        login_bounds, photo_bounds = login_panel.bounding_box(), library_photo.bounding_box()
+        if mobile:
+            assert login_bounds["y"] < photo_bounds["y"]
+        else:
+            assert photo_bounds["x"] < login_bounds["x"]
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         page.locator("#id_username").fill("000042")
         page.locator("#id_password").fill(os.environ["DEMO_STUDENT_PASSWORD"])
         page.get_by_role("button", name="Entrar").click()
         expect(page.get_by_role("heading", name="A sua biblioteca")).to_be_visible()
+        expect(page.get_by_role("heading", name="Explore o acervo")).to_be_visible()
+        page.wait_for_function("""window.portalAnimatedElements.some(element =>
+            element.matches('.portal-hero-content')) && window.portalAnimatedElements.some(element =>
+            element.matches('.portal-hero-image'))""")
+        brand_location = ".site-header .brand" if mobile else ".management-sidebar .management-mark"
+        brand = page.locator(f"{brand_location} .brand-icon")
+        expect(brand).to_be_visible()
+        expect(brand.locator("img")).to_have_js_property("naturalWidth", 103)
+        header = page.get_by_role("banner")
+        content = page.get_by_role("main")
+        page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
+        page.wait_for_function("window.portalAnimatedElements.some(element => element.matches('.portal-book'))")
+        expect(header).to_be_in_viewport(ratio=1)
+        assert page.evaluate("window.scrollY") > 0
+        assert content.evaluate("panel => panel.scrollHeight === panel.clientHeight")
+        assert header.evaluate("""bar => {
+            const box = bar.getBoundingClientRect();
+            return Math.abs(box.top) <= 1
+                && bar.contains(document.elementFromPoint(box.left + box.width / 2, 2));
+        }""")
+        expect(page.locator("html")).to_have_css("scrollbar-width", "thin")
+        expect(page.get_by_role("button", name="Pesquisar", exact=True)).to_be_in_viewport(ratio=1)
+        expect(page.get_by_role("button", name="Sair", exact=True)).to_be_in_viewport(ratio=1)
+        expect(page.get_by_role("button", name="Activar modo escuro")).to_be_in_viewport(ratio=1)
+        page.evaluate("window.scrollTo(0, 0)")
+        content.focus()
+        content.press("PageDown")
+        page.wait_for_function("window.scrollY > 0")
+        content.press("Home")
+        page.wait_for_function("window.scrollY === 0")
+        portal_nav = page.get_by_role("navigation", name="Portal da biblioteca")
+        expect(portal_nav.get_by_role("link", name="Início", exact=True)).to_have_attribute("aria-current", "page")
+        expect(portal_nav.get_by_role("link", name="Painel administrativo")).to_have_count(0)
+        expect(page.locator("body")).to_have_css("color-scheme", "light")
+        page.get_by_role("button", name="Activar modo escuro").click()
+        expect(page.locator("body")).to_have_css("color-scheme", "dark")
+        expect(brand).to_have_css("background-color", "rgb(243, 246, 251)")
+        portal_nav.get_by_role("link", name="Catálogo", exact=True).click()
+        expect(page.locator("body")).to_have_css("color-scheme", "dark")
+        page.reload()
+        expect(page.get_by_role("button", name="Activar modo claro")).to_be_visible()
+        filters = header.get_by_role("group", name="Filtros do catálogo")
+        expect(page.get_by_role("heading", name="Obras", exact=True)).to_be_visible()
+        expect(filters.get_by_label("Tipo", exact=True)).to_be_visible()
+        expect(filters.get_by_label("Idioma", exact=True)).to_be_visible()
+        expect(filters.get_by_label("Ano", exact=True)).to_be_visible()
+        back_to_top = page.get_by_role("button", name="Voltar ao topo")
+        expect(back_to_top).to_be_hidden()
+        page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
+        page.wait_for_function("window.portalAnimatedElements.some(element => element.matches('.portal-book'))")
+        assert page.evaluate("""() => {
+            const books = window.portalAnimatedElements.filter(element => element.matches('.portal-book'));
+            return books.length === new Set(books).size;
+        }""")
+        expect(back_to_top).to_be_in_viewport(ratio=1)
+        assert content.evaluate("panel => panel.scrollHeight === panel.clientHeight")
+        expect(page.locator("html")).to_have_css("scrollbar-color", "rgb(105, 105, 113) rgb(20, 20, 22)")
+        expect(filters).to_be_in_viewport(ratio=1)
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        if mobile:
+            page.emulate_media(reduced_motion="reduce")
+            back_to_top.tap()
+        else:
+            back_to_top.press("Enter")
+        page.wait_for_function("window.scrollY === 0")
+        expect(page.get_by_role("heading", name="Obras", exact=True)).to_be_focused()
+        expect(back_to_top).to_be_hidden()
+        filters.get_by_label("Formato", exact=True).select_option("fisico")
+        filters.get_by_role("button", name="Aplicar filtros").click()
+        expect(page.get_by_text("3 resultados", exact=True)).to_be_visible()
+        expect(filters.get_by_label("Formato", exact=True)).to_have_value("fisico")
+        page.locator("#home-q").fill("Escrita académica")
+        header.get_by_role("button", name="Pesquisar", exact=True).click()
+        expect(page.get_by_text("1 resultado", exact=True)).to_be_visible()
+        expect(filters.get_by_label("Formato", exact=True)).to_have_value("fisico")
+        filters.get_by_role("link", name="Limpar", exact=True).click()
+        expect(page.get_by_text("5 resultados", exact=True)).to_be_visible()
+        expect(filters.get_by_label("Formato", exact=True)).to_have_value("")
+        page.emulate_media(reduced_motion="reduce")
+        portal_nav.get_by_role("link", name="Início", exact=True).click()
+        expect(page.get_by_role("heading", name="A sua biblioteca")).to_be_visible()
+        page.locator(".portal-book").first.scroll_into_view_if_needed()
+        page.evaluate("() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))")
+        assert page.evaluate("window.portalAnimatedElements.length") == 0
+        page.get_by_role("button", name="Activar modo claro").click()
+        expect(page.locator("body")).to_have_css("color-scheme", "light")
+        page.locator("#home-q").fill("Escrita académica")
+        page.get_by_role("button", name="Pesquisar").click()
+        page.get_by_role("link", name="Escrita académica", exact=True).click()
+        expect(page.get_by_text("Secção fictícia de demonstração", exact=True)).to_be_visible()
+        portal_nav.get_by_role("link", name="Início", exact=True).click()
+        page.locator("#home-q").fill("Fundamentos de biologia")
+        page.get_by_role("button", name="Pesquisar").click()
+        page.get_by_role("link", name="Fundamentos de biologia", exact=True).click()
+        expect(page.get_by_text("Leitura e descarregamento", exact=False)).to_be_visible()
+        page.get_by_role("link", name="Ler", exact=True).click()
+        expect(page.locator("#reader-status")).to_have_text("Página 1 de 3")
+        expect(page.locator("#page-text")).to_contain_text("unidade de organização")
+        portal_nav.get_by_role("link", name="Início", exact=True).click()
         page.locator("#home-q").fill("investigação")
         page.get_by_role("button", name="Pesquisar").click()
-        page.get_by_role("link", name=re.compile("Introdução à investigação")).click()
+        page.get_by_role("link", name="Introdução à investigação — obra fictícia", exact=True).click()
         page.get_by_role("link", name="Ler", exact=True).click()
         expect(page.locator("#reader-status")).to_have_text(re.compile(r"Página \d de 3"), timeout=12000)
         page.locator("#page").fill("1")
@@ -48,7 +168,10 @@ with sync_playwright() as playwright:
         expect(page.locator("#marker")).to_have_attribute("aria-pressed", "true")
         page.get_by_role("link", name="Minhas leituras", exact=True).click()
         expect(page.get_by_role("heading", name="Marcadores")).to_be_visible()
-        expect(page.get_by_text("Página 1", exact=True)).to_have_count(2)
+        for section_name in ("Leituras recentes", "Marcadores"):
+            section = page.locator("section").filter(has=page.get_by_role("heading", name=section_name))
+            reading = section.locator(".record").filter(has_text="Introdução à investigação")
+            expect(reading.get_by_text("Página 1", exact=True)).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         page.get_by_role("button", name="Sair", exact=True).click()
         page.get_by_role("link", name="Entrada da administração").click()
@@ -56,6 +179,48 @@ with sync_playwright() as playwright:
         page.locator("#id_password").fill(os.environ["DEMO_STAFF_PASSWORD"])
         page.get_by_role("button", name="Entrar").click()
         expect(page.get_by_role("heading", name="Painel administrativo")).to_be_visible()
+        expect(page).to_have_url(base + "/admin/")
+        expect(page.locator("body")).to_have_css("color-scheme", "dark")
+        expect(brand).to_be_visible()
+        expect(brand.locator("img")).to_have_js_property("naturalWidth", 103)
+        expect(brand).to_have_css("background-color", "rgb(243, 246, 251)")
+        overview = page.locator(".dashboard-overview")
+        expect(overview.get_by_role("heading", level=2)).to_have_text(["Acervo", "Documentos", "Estudantes"])
+        expect(overview.get_by_role("link", name="Obras publicadas 5")).to_have_attribute("href", "/admin/obras/?estado=published")
+        expect(overview.get_by_role("link", name="Pendentes de revisão 0")).to_have_attribute("href", "/admin/documentos/?estado=revisao")
+        expect(overview.get_by_role("link", name="Credenciamento válido 1")).to_have_attribute("href", "/admin/estudantes/?estado=active")
+        columns = overview.locator(":scope > section").evaluate_all(
+            "cards => new Set(cards.map(card => Math.round(card.getBoundingClientRect().left))).size"
+        )
+        assert columns == (1 if mobile else 3)
+        expect(page.get_by_role("heading", name="Obras actualizadas recentemente")).to_be_visible()
+        expect(page.get_by_role("heading", name="Auditoria recente")).to_be_visible()
+        assert page.locator("footer.site-footer").count() == 0
+        page.get_by_role("button", name="Activar modo claro").click()
+        expect(page.locator("body")).to_have_css("color-scheme", "light")
+        expect(brand).to_have_css("background-color", "rgba(0, 0, 0, 0)")
+        expect(page.locator("main")).to_have_css("background-color", "rgb(251, 252, 254)")
+        page.reload()
+        expect(page.locator("body")).to_have_css("color-scheme", "light")
+        expect(page.get_by_role("button", name="Activar modo escuro")).to_be_visible()
+        if not mobile:
+            page.set_viewport_size({"width": width, "height": 620})
+        page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
+        assert page.evaluate("window.scrollY") > 0
+        expect(header).to_be_in_viewport(ratio=1)
+        assert header.evaluate("""bar => {
+            const box = bar.getBoundingClientRect();
+            return Math.abs(box.top) <= 1
+                && getComputedStyle(bar).backgroundColor === getComputedStyle(document.body).backgroundColor
+                && bar.contains(document.elementFromPoint(box.left + box.width / 2, 2));
+        }""")
+        expect(header.get_by_label("Pesquisar por título")).to_be_in_viewport(ratio=1)
+        expect(header.get_by_role("button", name="Activar modo escuro")).to_be_in_viewport(ratio=1)
+        expect(header.get_by_role("link", name="Abrir portal")).to_be_in_viewport(ratio=1)
+        expect(header.get_by_role("button", name="Sair", exact=True)).to_be_in_viewport(ratio=1)
+        page.evaluate("window.scrollTo(0, 0)")
+        if not mobile:
+            page.set_viewport_size({"width": width, "height": height})
         navigation = page.get_by_role("navigation", name="Navegação administrativa")
         menu = page.get_by_role("button", name="Menu administrativo")
         if mobile:
@@ -71,6 +236,60 @@ with sync_playwright() as playwright:
         else:
             expect(menu).to_be_hidden()
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        if not mobile:
+            page.set_viewport_size({"width": 1280, "height": 550})
+            expect(navigation.get_by_role("link", name="Alterar palavra-passe")).to_be_in_viewport(ratio=1)
+            assert navigation.evaluate("menu => menu.scrollHeight === menu.clientHeight")
+            assert navigation.locator("a svg").evaluate_all(
+                "icons => icons.length === 9 && icons.every(icon => {"
+                "const box = icon.getBoundingClientRect(); return box.height > 0 && box.top >= 0 && box.bottom <= innerHeight;"
+                "})"
+            )
+            page.set_viewport_size({"width": width, "height": height})
+        if mobile:
+            menu.click()
+        navigation.get_by_role("link", name="Obras e edições").click()
+        expect(page.get_by_role("heading", name="Gestão do acervo")).to_be_visible()
+        # The desktop pass also uploads a draft to the shared demo database.
+        expect(page.get_by_text(f"{6 if mobile else 5} obras", exact=True)).to_be_visible()
+        expect(page.locator("body")).to_have_css("color-scheme", "light")
+        page.get_by_role("button", name="Activar modo escuro").press("Enter")
+        expect(page.locator("body")).to_have_css("color-scheme", "dark")
+        page.reload()
+        expect(page.locator("body")).to_have_css("color-scheme", "dark")
+        if mobile:
+            menu.click()
+        page.get_by_role("link", name="Nova obra", exact=True).click()
+        expect(page.get_by_role("heading", name="Dados da obra", exact=True)).to_be_visible()
+        page.get_by_label("Pesquisar por título").fill("investigação")
+        page.get_by_role("button", name="Pesquisar obras", exact=True).click()
+        expect(page.get_by_text("2 obras", exact=True)).to_be_visible()
+        expect(page.get_by_label("Pesquisar por título")).to_have_value("investigação")
+        page.get_by_label("Pesquisar por título").fill("título inexistente")
+        page.get_by_label("Estado", exact=True).select_option("published")
+        page.get_by_role("button", name="Filtrar", exact=True).click()
+        expect(page.get_by_role("heading", name="Nenhuma obra encontrada")).to_be_visible()
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        page.get_by_role("link", name="Limpar filtros").click()
+        page.get_by_role("link", name="Introdução à investigação — obra fictícia", exact=True).click()
+        expect(page.get_by_role("heading", name="Introdução à investigação — obra fictícia", exact=True)).to_be_visible()
+        publication = page.get_by_role("region", name="Publicação")
+        expect(publication.get_by_text("Publicada", exact=True)).to_be_visible()
+        expect(publication.get_by_role("button", name="Retirar obra")).to_be_visible()
+        expect(publication.get_by_role("link", name="Ver ficha no portal")).to_be_visible()
+        editions = page.get_by_role("region", name="Edições e exemplares")
+        expect(editions.get_by_role("link", name="Nova edição")).to_be_visible()
+        expect(editions.get_by_role("link", name="Carregar documento")).to_be_visible()
+        expect(editions.get_by_role("link", name="Editar exemplar FICTICIO-42")).to_be_visible()
+        detail_columns = editions.locator(".admin-edition-details > section").evaluate_all(
+            "sections => new Set(sections.map(section => Math.round(section.getBoundingClientRect().left))).size"
+        )
+        assert detail_columns == (1 if mobile else 2)
+        history = page.get_by_role("region", name="Histórico de documentos")
+        expect(history.get_by_role("link", name="Pré-visualizar")).to_be_visible()
+        page.get_by_role("button", name="Activar modo claro").click()
+        expect(page.locator("body")).to_have_css("color-scheme", "light")
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
         page.get_by_role("link", name="Abrir portal").click()
         expect(page.get_by_role("navigation", name="Portal da biblioteca")).to_be_visible()
         expect(navigation).to_have_count(0)
@@ -81,12 +300,57 @@ with sync_playwright() as playwright:
             menu.click()
         navigation.get_by_role("link", name="Exemplares físicos", exact=True).click()
         expect(page.get_by_role("heading", name="Exemplares físicos")).to_be_visible()
-        expect(page.get_by_role("link", name="Editar exemplar")).to_be_visible()
+        inventory = page.get_by_role("region", name="Inventário", exact=True)
+        expect(inventory.get_by_text("3 exemplares", exact=True)).to_be_visible()
+        physical = inventory.get_by_role("article", name="Escrita académica")
+        expect(physical.get_by_text("ROVUMA-DEMO-ESCRITA", exact=True)).to_be_visible()
+        expect(physical.get_by_text("Secção fictícia de demonstração", exact=True)).to_be_visible()
+        columns = inventory.locator(".admin-inventory-columns")
+        if mobile:
+            expect(columns).to_be_hidden()
+        else:
+            expect(columns).to_be_visible()
+        page.get_by_role("button", name="Activar modo escuro").click()
+        expect(page.locator("body")).to_have_css("color-scheme", "dark")
+        expect(physical.get_by_text("Consulta local", exact=True)).to_have_css("background-color", "rgb(33, 59, 49)")
+        inventory_filters = inventory.get_by_role("search", name="Pesquisar exemplares")
+        inventory_filters.get_by_label("Inventário, obra ou localização").fill("ROVUMA-DEMO-ESCRITA")
+        inventory_filters.get_by_label("Estado", exact=True).select_option("local")
+        inventory_filters.get_by_role("button", name="Filtrar").click()
+        expect(inventory.get_by_text("1 exemplar", exact=True)).to_be_visible()
+        assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        inventory_filters.get_by_label("Estado", exact=True).select_option("maintenance")
+        inventory_filters.get_by_role("button", name="Filtrar").click()
+        expect(inventory.get_by_role("heading", name="Nenhum exemplar encontrado")).to_be_visible()
+        inventory_filters.get_by_role("link", name="Limpar filtros").click()
+        expect(inventory.get_by_text("3 exemplares", exact=True)).to_be_visible()
+        physical.get_by_role("link", name="Editar exemplar ROVUMA-DEMO-ESCRITA").click()
+        expect(page.get_by_role("heading", name="Registo do acervo")).to_be_visible()
         if mobile:
             menu.click()
         navigation.get_by_role("link", name="Estudantes", exact=True).click()
         expect(page.get_by_role("link", name="000042")).to_be_visible()
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
-        print(f"{width} × {height}: entrada do portal, PDF, marcador, entrada administrativa, barra lateral, inventário e fila validados.", flush=True)
+        if mobile:
+            menu.click()
+        navigation.get_by_role("link", name="Obras e edições").click()
+        page.get_by_role("link", name="Carregar nova obra").click()
+        expect(page.get_by_role("heading", name="Registar obra digital")).to_be_visible()
+        upload_title = f"Guia de carregamento ({width})"
+        page.locator("#id_title").fill(upload_title)
+        page.locator("#id_language").fill("Português")
+        cover = Path(__file__).resolve().parents[1] / "static" / "rovuma-logo.png"
+        page.locator("#id_cover_image").set_input_files(cover)
+        page.get_by_role("button", name="Continuar para o carregamento").click()
+        expect(page.get_by_role("heading", name="Carregar documento")).to_be_visible()
+        source = page.get_by_label("Ficheiro", exact=True)
+        expect(source).to_have_attribute("accept", ".pdf,.docx,.odt,.txt")
+        source.set_input_files({"name": "guia.txt", "mimeType": "text/plain", "buffer": "Ensaio de leitura em português.\n".encode()})
+        page.get_by_label("Licença ou referência da autorização").fill("Documento de teste elaborado para este ensaio.")
+        page.get_by_role("button", name="Carregar ou retomar").click()
+        expect(page.get_by_role("heading", name=upload_title)).to_be_visible()
+        expect(page.get_by_text("Ficheiro recebido. Aguarda análise na fila de documentos.")).to_be_visible()
+        expect(page.get_by_role("heading", name="guia.txt")).to_be_visible()
+        print(f"{width} × {height}: entrada do portal, PDF, marcador, entrada administrativa, alternância e persistência do tema, barra lateral, filtros do acervo, inventário e fila validados.", flush=True)
         context.close()
         browser.close()

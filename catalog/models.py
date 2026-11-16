@@ -35,6 +35,7 @@ class Work(models.Model):
     state = models.CharField(max_length=12, choices=State.choices, default=State.DRAFT, db_index=True)
     authors = models.ManyToManyField(Author, blank=True)
     subjects = models.ManyToManyField(Subject, blank=True)
+    is_demo = models.BooleanField(default=False, editable=False)
     modified = models.DateTimeField(auto_now=True)
 
     class Meta:

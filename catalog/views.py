@@ -1,4 +1,5 @@
 from io import BytesIO
+import logging
 import os
 from tempfile import mkstemp
 
@@ -18,6 +19,10 @@ from audit.models import record
 from documents.models import Version
 from reading.models import Bookmark, Progress
 from .models import Author, Copy, Edition, Identifier, Location, Subject, Work
+from .sample_assets import KEYS, PREFIX, SCHEME, asset
+
+
+logger = logging.getLogger(__name__)
 
 
 def allowed(user):
@@ -27,6 +32,13 @@ def allowed(user):
 def visible():
     return Work.objects.filter(state=Work.State.PUBLISHED).prefetch_related(
         "authors", "subjects", "editions__identifiers",
+    )
+
+
+def with_formats(works):
+    return works.annotate(
+        digital=Exists(Version.objects.filter(document__edition__work=OuterRef("pk"), state=Version.State.PUBLISHED)),
+        physical=Exists(Copy.objects.filter(edition__work=OuterRef("pk"), state=Copy.State.LOCAL)),
     )
 
 
@@ -48,13 +60,14 @@ def portal(request):
     if not allowed(request.user):
         return render(request, "staff_home.html")
     recent = available_readings(Progress, request.user).order_by("-updated")[:6] if student(request.user) else []
-    return render(request, "home.html", {"recent": recent})
+    featured = with_formats(visible()).order_by("is_demo", "-modified", "-pk")[:4]
+    return render(request, "home.html", {"recent": recent, "featured": featured})
 
 
 @require(allowed)
 def catalogue(request):
     qs = visible()
-    q = request.GET.get("q", "").strip()
+    q = request.GET.get("q", "").strip()[:200]
     kind = request.GET.get("tipo", "")
     language = request.GET.get("idioma", "")
     year = request.GET.get("ano", "")
@@ -67,10 +80,7 @@ def catalogue(request):
     if language: qs = qs.filter(language=language)
     if len(year) <= 4 and year.isascii() and year.isdigit():
         qs = qs.filter(editions__year=int(year))
-    qs = qs.annotate(
-        digital=Exists(Version.objects.filter(document__edition__work=OuterRef("pk"), state=Version.State.PUBLISHED)),
-        physical=Exists(Copy.objects.filter(edition__work=OuterRef("pk"), state=Copy.State.LOCAL)),
-    )
+    qs = with_formats(qs)
     if fmt in {"digital", "ambos"}:
         qs = qs.filter(digital=True)
     if fmt in {"fisico", "ambos"}:
@@ -99,6 +109,11 @@ def cover_path(pk):
 def cover(request, pk):
     work = get_object_or_404(visible(), pk=pk)
     path = cover_path(work.pk)
+    if work.is_demo and not path.is_file():
+        marker = Identifier.objects.filter(edition__work=work, scheme=SCHEME, value__startswith=PREFIX).values_list("value", flat=True).first()
+        key = marker.removeprefix(PREFIX).lower() if marker else ""
+        if key in KEYS:
+            path = asset(key, "webp")
     try:
         image = path.open("rb")
     except FileNotFoundError:
@@ -125,6 +140,8 @@ def collection(request):
         works = works.filter(title__icontains=q)
     if state in Work.State.values:
         works = works.filter(state=state)
+    else:
+        state = ""
     page = Paginator(works.order_by("-modified", "-pk"), 30).get_page(request.GET.get("page"))
     return render(request, "collection.html", {"page": page, "q": q, "state": state, "states": Work.State.choices})
 
@@ -156,25 +173,36 @@ class WorkForm(forms.ModelForm):
 
 
 @permission(EDITOR)
-def edit_work(request, pk=None):
+def edit_work(request, pk=None, upload_document=False):
     work = get_object_or_404(Work, pk=pk) if pk else None
     form = WorkForm(request.POST or None, request.FILES or None, instance=work)
     if request.method == "POST" and form.is_valid():
-        saved = form.save()
-        if form.cleaned_data["cover_image"]:
-            path = cover_path(saved.pk)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            fd, temporary = mkstemp(dir=path.parent)
-            try:
-                with os.fdopen(fd, "wb") as target:
-                    target.write(form.cleaned_data["cover_image"])
-                os.replace(temporary, path)
-            finally:
-                if os.path.exists(temporary):
-                    os.unlink(temporary)
-        record(request.user, "collection", "Guardou obra", saved.pk)
-        return redirect("manage_work", pk=saved.pk)
-    return render(request, "form.html", {"form": form, "heading": "Dados da obra", "layout": "management/base.html"})
+        try:
+            with transaction.atomic():
+                saved = form.save()
+                if upload_document:
+                    edition = Edition.objects.create(work=saved, label="1.ª edição")
+                record(request.user, "collection", "Guardou obra", saved.pk)
+                if form.cleaned_data["cover_image"]:
+                    path = cover_path(saved.pk)
+                    path.parent.mkdir(parents=True, exist_ok=True)
+                    fd, temporary = mkstemp(dir=path.parent)
+                    try:
+                        with os.fdopen(fd, "wb") as target:
+                            target.write(form.cleaned_data["cover_image"])
+                        os.replace(temporary, path)
+                    finally:
+                        if os.path.exists(temporary):
+                            os.unlink(temporary)
+        except OSError as error:
+            logger.error("Falha ao guardar a capa no armazenamento privado: errno %s.", error.errno)
+            form.add_error("cover_image", "Não foi possível guardar a capa. Volte a seleccionar a imagem ou guarde a obra sem capa.")
+        else:
+            if upload_document:
+                return redirect("upload", pk=edition.pk)
+            return redirect("manage_work", pk=saved.pk)
+    return render(request, "form.html", {"form": form, "heading": "Registar obra digital" if upload_document else "Dados da obra",
+                                        "layout": "management/base.html", "submit": "Continuar para o carregamento" if upload_document else None})
 
 
 @permission(EDITOR)

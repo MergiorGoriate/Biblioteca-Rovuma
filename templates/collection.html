@@ -1,4 +1,70 @@
-{% extends "management/base.html" %}{% block content %}<div class="section-head"><h1>Gestão do acervo</h1><div class="actions"><a class="secondary" href="{% url 'locations' %}">Localizações, autores e assuntos</a><a class="primary" href="{% url 'new_work' %}">Nova obra</a></div></div>
-<section class="panel"><form class="dashboard-filter" method="get"><label>Pesquisar por título<input name="q" value="{{ q }}"></label><label>Estado<select name="estado"><option value="">Todos</option>{% for value,label in states %}<option value="{{ value }}"{% if state == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select></label><button class="secondary">Filtrar</button></form>
-{% for work in page %}<div class="row"><div><a href="{% url 'manage_work' work.pk %}">{{ work.title }}</a><div class="small muted">{{ work.get_kind_display }}</div></div><span class="tag">{{ work.get_state_display }}</span></div>{% empty %}<p class="muted">Nenhuma obra encontrada.</p>{% endfor %}
-{% include "pagination.html" %}</section>{% endblock %}
+{% extends "management/base.html" %}
+{% block title %}Gestão do acervo · Biblioteca Rovuma{% endblock %}
+{% block content %}
+<header class="admin-page-heading">
+  <h1>Gestão do acervo</h1>
+  <a class="primary admin-action" href="{% url 'new_digital_work' %}">{% include "management/icon.html" with icon="upload" %}Carregar nova obra</a>
+</header>
+
+<section class="admin-collection" aria-labelledby="collection-heading">
+  <header class="admin-collection-header">
+    <h2 id="collection-heading">Obras e edições</h2>
+    <span class="admin-result-count">{{ page.paginator.count }} obra{{ page.paginator.count|pluralize }}</span>
+  </header>
+
+  <div class="admin-collection-filters">
+    <div>
+      <label for="collection-state">Estado</label>
+      <select id="collection-state" name="estado" form="admin-search">
+        <option value="">Todos os estados</option>
+        {% for value, label in states %}<option value="{{ value }}"{% if state == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <button class="secondary" type="submit" form="admin-search">Filtrar</button>
+    {% if q or state %}<a class="plain" href="{% url 'collection' %}">Limpar filtros</a>{% endif %}
+  </div>
+
+  {% if page.object_list %}
+  <table class="admin-works-table" aria-labelledby="collection-heading">
+    <thead>
+      <tr>
+        <th scope="col">Título</th>
+        <th scope="col">Estado</th>
+        <th scope="col" class="admin-work-date">Actualizada</th>
+        <th scope="col" class="admin-work-action"><span class="sr-only">Acção</span></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for work in page %}
+      <tr>
+        <th scope="row">
+          <div class="admin-work-title">
+            <span class="admin-work-icon">{% include "management/icon.html" with icon="file" %}</span>
+            <div>
+              <a href="{% url 'manage_work' work.pk %}">{{ work.title }}</a>
+              <span class="muted">{{ work.get_kind_display }} · {{ work.language }}{% if work.is_demo %} · Demonstração{% endif %}</span>
+            </div>
+          </div>
+        </th>
+        <td><span class="admin-work-state" data-state="{{ work.state }}">{{ work.get_state_display }}</span></td>
+        <td class="admin-work-date"><time datetime="{{ work.modified|date:'c' }}">{{ work.modified|date:'d/m/Y' }}</time></td>
+        <td class="admin-work-action"><a href="{% url 'manage_work' work.pk %}" aria-label="Gerir {{ work.title }}">Gerir{% include "management/icon.html" with icon="arrow" %}</a></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if page.has_other_pages %}<div class="admin-collection-pagination">{% include "pagination.html" %}</div>{% endif %}
+  {% else %}
+  <div class="admin-collection-empty">
+    <span class="admin-empty-icon">{% if q or state %}{% include "management/icon.html" with icon="search" %}{% else %}{% include "management/icon.html" with icon="books" %}{% endif %}</span>
+    {% if q or state %}
+    <h3>Nenhuma obra encontrada</h3>
+    <p>Experimente outro título ou estado.</p>
+    {% else %}
+    <h3>O acervo ainda está vazio</h3>
+    <p>Registe a primeira obra para adicionar edições, documentos ou exemplares.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+{% endblock %}

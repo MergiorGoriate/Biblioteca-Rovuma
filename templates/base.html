@@ -3,7 +3,13 @@
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{% block title %}Biblioteca Rovuma{% endblock %}</title>
+<link rel="icon" href="{% static 'favicons/favicon.ico' %}?v=3" sizes="any">
+<link rel="icon" href="{% static 'favicons/favicon-16x16.png' %}?v=3" sizes="16x16" type="image/png">
+<link rel="icon" href="{% static 'favicons/favicon-32x32.png' %}?v=3" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="{% static 'favicons/apple-touch-icon.png' %}?v=3" sizes="180x180">
+<link rel="manifest" href="{% static 'favicons/site.webmanifest' %}?v=3">
 <link rel="stylesheet" href="{% static 'style.css' %}">
+{% block styles %}{% endblock %}
 </head>
 <body class="{% block body_class %}portal{% endblock %}">
 <a class="skip" href="#conteudo">Saltar para o conteúdo</a>
@@ -19,14 +25,16 @@
 </nav>
 {% endif %}
 {% endblock %}
-</div></header>
+</div>
+{% block header_bottom %}{% endblock %}
+</header>
 {% block layout_start %}{% endblock %}
-<main id="conteudo" class="{% block main_class %}wrap main{% endblock %}">
+<main id="conteudo" class="{% block main_class %}wrap main{% endblock %}"{% block main_attributes %}{% endblock %}>
 {% for message in messages %}<div class="notice {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
 {% block content %}{% endblock %}
 </main>
 {% block layout_end %}{% endblock %}
-<footer class="site-footer"><div class="wrap footer-flex"><span>Biblioteca Rovuma</span><span>Universidade Rovuma · Moçambique</span></div></footer>
+{% block footer %}<footer class="site-footer"><div class="wrap footer-flex"><span>Biblioteca Rovuma</span><span>Universidade Rovuma · Moçambique</span></div></footer>{% endblock %}
 {% block layout_scripts %}{% endblock %}
 {% block scripts %}{% endblock %}
 </body></html>

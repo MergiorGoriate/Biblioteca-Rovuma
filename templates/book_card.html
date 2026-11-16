@@ -1,0 +1,9 @@
+<article class="work-card portal-book">
+  <a class="cover" href="{% url 'work' work.pk %}" aria-hidden="true" tabindex="-1"><img loading="lazy" width="320" height="450" src="{% url 'cover' work.pk %}" alt=""></a>
+  <div class="card-body">
+    <p class="portal-book-kind">{{ work.get_kind_display }}{% if work.is_demo %}<span>· Demonstração</span>{% endif %}</p>
+    <h3><a href="{% url 'work' work.pk %}">{{ work.title }}</a></h3>
+    {% if work.authors.all %}<p class="small muted">{{ work.authors.all|join:", " }}</p>{% endif %}
+    <div class="tags">{% if work.digital %}<span>Digital</span>{% endif %}{% if work.physical %}<span>Consulta local</span>{% endif %}</div>
+  </div>
+</article>

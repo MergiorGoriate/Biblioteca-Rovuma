@@ -1,3 +1,4 @@
+import errno
 import json
 from datetime import timedelta
 from pathlib import Path
@@ -15,7 +16,8 @@ from accounts.models import User
 from catalog.models import Copy, Edition, Location, Work
 from documents.models import Document, Job, Licence, Version
 from documents.storage import original, part
-from documents.worker import main as worker_main
+from documents.worker import Rejected, main as worker_main, validate_odt, validate_text
+from ops.verify_processor import write_probe_odt
 from reading.models import Bookmark
 
 
@@ -66,6 +68,43 @@ class LibraryTest(TestCase):
 
     def upload_chunk(self, url, data, offset):
         return self.editor.post(url, {"offset": offset, "chunk": SimpleUploadedFile("part", data)})
+
+    def test_new_digital_work_and_expanded_upload_formats(self):
+        route = self.url("new_digital_work")
+        self.enter()
+        self.assertEqual(self.client.get(route).status_code, 403)
+        response = self.editor.post(route, {"title": "Guia digital", "kind": Work.Kind.BOOK, "language": "Português"})
+        edition = Edition.objects.get(work__title="Guia digital")
+        self.assertRedirects(response, self.url("upload", edition.pk))
+        self.assertContains(self.editor.get(response.url), 'accept=".pdf,.docx,.odt,.txt"')
+
+        example = original(self.version.pk).with_name("sonda.odt")
+        write_probe_odt(example)
+        for name, data in (("Guia.ODT", example.read_bytes()), ("Guia.txt", "Investigação científica\n".encode())):
+            with self.subTest(name=name):
+                url = self.start(name, len(data))
+                self.assertEqual(self.upload_chunk(url, data, 0).status_code, 200)
+                self.assertEqual(self.editor.post(url, {"finish": "1"}).status_code, 200)
+                version = Version.objects.get(original_name=name)
+                self.assertEqual(version.file_format, Path(name).suffix[1:].lower())
+                self.assertEqual(version.job.state, Job.State.WAITING)
+                self.assertEqual(original(version.pk).read_bytes(), data)
+
+    def test_odt_and_text_format_validation(self):
+        from zipfile import ZipFile
+
+        path = original(self.version.pk).with_name("exemplo")
+        write_probe_odt(path)
+        validate_odt(path)
+        with ZipFile(path, "a") as archive:
+            archive.writestr("Basic/Standard/macros.xml", "<macro/>")
+        with self.assertRaisesMessage(Rejected, "O ODT contém macros"):
+            validate_odt(path)
+        path.write_bytes("Leitura em português\n".encode("utf-8-sig"))
+        validate_text(path)
+        path.write_bytes(b"\xff\x00")
+        with self.assertRaisesMessage(Rejected, "UTF-8"):
+            validate_text(path)
 
     def test_guest_catalogue_bytes_and_download(self):
         for name in ("catalogue", "work", "reader", "pdf", "download"):
@@ -344,6 +383,30 @@ class LibraryTest(TestCase):
         with Image.open(BytesIO(b"".join(response.streaming_content))) as image:
             self.assertEqual(image.format, "WEBP")
             self.assertLessEqual(image.height, 840)
+
+    def test_new_digital_work_with_cover_storage_failure_preserves_form(self):
+        from io import BytesIO
+        from PIL import Image
+
+        cover = BytesIO()
+        Image.new("RGB", (64, 96), "navy").save(cover, "PNG")
+        route = self.url("new_digital_work")
+        title = "Guia digital com capa"
+        data = {"title": title, "kind": Work.Kind.BOOK, "language": "Português"}
+        with patch("catalog.views.mkstemp", side_effect=PermissionError(errno.EACCES, "Sem acesso")), \
+                self.assertLogs("catalog.views", level="ERROR"):
+            response = self.editor.post(route, {
+                **data, "cover_image": SimpleUploadedFile("capa.png", cover.getvalue(), "image/png"),
+            })
+        self.assertContains(response, "Não foi possível guardar a capa.")
+        self.assertContains(response, title)
+        self.assertFalse(Work.objects.filter(title=title).exists())
+
+        response = self.editor.post(route, {
+            **data, "cover_image": SimpleUploadedFile("capa.png", cover.getvalue(), "image/png"),
+        })
+        edition = Edition.objects.get(work__title=title)
+        self.assertRedirects(response, self.url("upload", edition.pk))
 
     def test_draft_publication_requires_reviewed_version_or_physical_copy(self):
         work = Work.objects.create(title="Obra por rever", language="Português")

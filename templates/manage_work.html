@@ -1,31 +1,121 @@
-{% extends "management/base.html" %}{% block content %}<a class="back" href="{% url 'collection' %}">← Gestão do acervo</a>
-<div class="section-head"><div><p class="eyebrow">{{ work.get_state_display }}</p><h1>{{ work.title }}</h1></div><a class="secondary" href="{% url 'edit_work' work.pk %}">Editar dados</a></div>
-<section class="panel">
-<div class="actions">
-<form method="post" action="{% url 'work_state' work.pk %}">{% csrf_token %}
-{% if work.state != 'published' %}<button class="primary" name="action" value="publish">Publicar obra</button>{% else %}<button class="secondary" name="action" value="withdraw">Retirar obra</button>{% endif %}
-{% if work.state != 'archived' %}<button class="secondary" name="action" value="archive">Arquivar obra</button>{% endif %}
-</form>{% if work.state == "published" %}<a href="{% url 'work' work.pk %}">Ver ficha no portal</a>{% endif %}</div></section>
-<section class="panel section"><div class="section-head"><h2>Edições e exemplares</h2><a href="{% url 'new_related' 'edicao' work.pk %}">Nova edição</a></div>
-{% for ed in work.editions.all %}
-<div class="record"><div class="section-head"><div><strong>{{ ed.label }}</strong> {{ ed.publisher }} {{ ed.year|default_if_none:"" }}</div><div class="actions"><a href="{% url 'edit_related' 'edicao' work.pk ed.pk %}">Editar edição</a><a href="{% url 'upload' ed.pk %}">Carregar documento</a></div></div>
-<div class="actions"><a href="{% url 'new_related' 'identificador' ed.pk %}">Novo identificador</a><a href="{% url 'new_related' 'exemplar' ed.pk %}">Novo exemplar</a></div>
-{% for id in ed.identifiers.all %}<div class="small"> {{ id.scheme }} {{ id.value }} <a href="{% url 'edit_related' 'identificador' ed.pk id.pk %}">Editar</a></div>{% endfor %}
-{% for copy in ed.copies.all %}<div class="small">{{ copy.inventory }} · {{ copy.location }} · {{ copy.get_state_display }} <a href="{% url 'edit_related' 'exemplar' ed.pk copy.pk %}">Editar</a></div>{% endfor %}
-</div>{% empty %}<p class="muted">Crie uma edição para associar documentos ou exemplares.</p>{% endfor %}
+{% extends "management/base.html" %}
+{% block title %}{{ work.title }} · Gestão do acervo{% endblock %}
+{% block content %}
+<a class="admin-text-link admin-back-link" href="{% url 'collection' %}">{% include "management/icon.html" with icon="arrow" %}Gestão do acervo</a>
+
+<header class="admin-page-heading admin-work-heading">
+  <div class="admin-work-heading-title">
+    <span class="admin-section-icon">{% include "management/icon.html" with icon="books" %}</span>
+    <div>
+      <h1>{{ work.title }}</h1>
+      {% if work.subtitle %}<p>{{ work.subtitle }}</p>{% endif %}
+      <p class="small muted">{{ work.get_kind_display }}{% if work.language %} · {{ work.language }}{% endif %}</p>
+    </div>
+  </div>
+  <a class="primary" href="{% url 'edit_work' work.pk %}">Editar dados</a>
+</header>
+
+<section class="admin-card admin-work-publication" aria-labelledby="work-publication">
+  <div>
+    <h2 id="work-publication">Publicação</h2>
+    <span class="admin-work-state" data-state="{{ work.state }}">{{ work.get_state_display }}</span>
+  </div>
+  <div class="actions admin-work-controls">
+    {% if work.state == 'published' %}<a class="plain admin-action" href="{% url 'work' work.pk %}">{% include "management/icon.html" with icon="external" %}Ver ficha no portal</a>{% endif %}
+    <form method="post" action="{% url 'work_state' work.pk %}">
+      {% csrf_token %}
+      {% if work.state == 'published' %}
+      <button class="secondary admin-danger-action" name="action" value="withdraw">Retirar obra</button>
+      {% else %}
+      <button class="primary" name="action" value="publish">Publicar obra</button>
+      {% endif %}
+      {% if work.state != 'archived' %}<button class="secondary" name="action" value="archive">Arquivar obra</button>{% endif %}
+    </form>
+  </div>
 </section>
-<section class="panel section"><h2>Histórico de documentos</h2>
-{% for version in versions %}<article class="record" id="documento-{{ version.pk }}"><h3>{{ version.original_name }}</h3>
-<p>{{ version.document.edition.label }} · {{ version.get_state_display }} · {{ version.get_access_mode_display }}</p>
-<p class="small">Análise {{ version.job.get_state_display|lower }} · {{ version.created|date:"d/m/Y H:i" }}</p>
-<p class="small break">Autorização registada — {{ version.authorization }}</p>
-{% if version.job.error %}<p class="notice error">{{ version.job.error }}</p>{% endif %}
-<form method="post" action="{% url 'editorial' version.pk %}">{% csrf_token %}
-{% if version.job.state == 'error' %}<button class="secondary" name="action" value="retry">Tentar novamente</button>
-{% elif version.job.state == 'done' %}
-<a href="{% url 'reader_preview' version.pk %}">Pré-visualizar</a>
-{% if version.state == 'published' %}<div class="actions"><button class="secondary" name="action" value="withdraw">Retirar versão</button><button class="secondary" name="action" value="archive">Arquivar versão</button></div>
-{% else %}<p><label class="check"><input type="checkbox" name="checked" value="yes" required> Confirmei a legibilidade e a integridade do documento.</label></p><button class="primary" name="action" value="publish">Publicar versão</button>{% endif %}
-{% endif %}</form></article>
-{% empty %}<p class="muted">Ainda não foram carregados documentos.</p>{% endfor %}</section>
+
+<section class="admin-card admin-work-section" aria-labelledby="work-editions">
+  <header class="admin-card-heading">
+    <h2 id="work-editions">Edições e exemplares</h2>
+    <a class="secondary admin-action" href="{% url 'new_related' 'edicao' work.pk %}">{% include "management/icon.html" with icon="plus" %}Nova edição</a>
+  </header>
+  {% for edition in work.editions.all %}
+  <article class="admin-edition">
+    <header class="admin-edition-heading">
+      <div>
+        <h3>{{ edition.label }}</h3>
+        {% if edition.publisher or edition.year %}<p class="small muted">{% if edition.publisher %}{{ edition.publisher }}{% endif %}{% if edition.publisher and edition.year %} · {% endif %}{{ edition.year|default_if_none:"" }}</p>{% endif %}
+      </div>
+      <div class="actions admin-work-controls">
+        <a class="plain" href="{% url 'edit_related' 'edicao' work.pk edition.pk %}">Editar edição</a>
+        <a class="secondary admin-action" href="{% url 'upload' edition.pk %}">{% include "management/icon.html" with icon="upload" %}Carregar documento</a>
+      </div>
+    </header>
+    <div class="admin-edition-details">
+      <section>
+        <h4>Identificadores</h4>
+        <ul class="admin-divided-list">
+          {% for identifier in edition.identifiers.all %}
+          <li>
+            <div><strong>{{ identifier.value }}</strong><span class="small muted">{{ identifier.scheme }}</span></div>
+            <a class="admin-text-link" href="{% url 'edit_related' 'identificador' edition.pk identifier.pk %}">Editar<span class="sr-only"> identificador {{ identifier.value }}</span></a>
+          </li>
+          {% empty %}<li class="small muted">Sem identificadores registados.</li>{% endfor %}
+        </ul>
+        <a class="admin-text-link admin-action" href="{% url 'new_related' 'identificador' edition.pk %}">{% include "management/icon.html" with icon="plus" %}Novo identificador</a>
+      </section>
+      <section>
+        <h4>Exemplares físicos</h4>
+        <ul class="admin-divided-list">
+          {% for copy in edition.copies.all %}
+          <li>
+            <div><strong>{{ copy.inventory }}</strong><span class="small muted">{{ copy.location }} · {{ copy.get_state_display }}</span></div>
+            <a class="admin-text-link" href="{% url 'edit_related' 'exemplar' edition.pk copy.pk %}">Editar<span class="sr-only"> exemplar {{ copy.inventory }}</span></a>
+          </li>
+          {% empty %}<li class="small muted">Sem exemplares registados.</li>{% endfor %}
+        </ul>
+        <a class="admin-text-link admin-action" href="{% url 'new_related' 'exemplar' edition.pk %}">{% include "management/icon.html" with icon="plus" %}Novo exemplar</a>
+      </section>
+    </div>
+  </article>
+  {% empty %}<p class="admin-empty-message muted">Crie uma edição para associar documentos ou exemplares.</p>{% endfor %}
+</section>
+
+<section class="admin-card admin-work-section" aria-labelledby="work-history">
+  <header class="admin-card-heading"><h2 id="work-history">Histórico de documentos</h2></header>
+  {% for version in versions %}
+  <article class="admin-version" id="documento-{{ version.pk }}">
+    <div class="admin-edition-heading">
+      <div>
+        <h3>{{ version.original_name }}</h3>
+        <p class="small muted">{{ version.document.edition.label }} · {{ version.get_access_mode_display }}</p>
+      </div>
+      <span class="admin-work-state" data-state="{{ version.state }}">{{ version.get_state_display }}</span>
+    </div>
+    <p class="small muted">Análise {{ version.job.get_state_display|lower }} · <time datetime="{{ version.created|date:'c' }}">{{ version.created|date:"d/m/Y H:i" }}</time></p>
+    <p class="small break"><strong>Autorização registada</strong> — {{ version.authorization }}</p>
+    {% if version.job.error %}<p class="notice error break">{{ version.job.error }}</p>{% endif %}
+    {% if version.job.state == 'error' or version.job.state == 'done' %}
+    <form class="admin-version-actions" method="post" action="{% url 'editorial' version.pk %}">
+      {% csrf_token %}
+      {% if version.job.state == 'error' %}
+      <button class="secondary" name="action" value="retry">Tentar novamente</button>
+      {% else %}
+      <div class="actions admin-work-controls">
+        <a class="plain" href="{% url 'reader_preview' version.pk %}">Pré-visualizar</a>
+        {% if version.state == 'published' %}
+        <button class="secondary admin-danger-action" name="action" value="withdraw">Retirar versão</button>
+        <button class="secondary" name="action" value="archive">Arquivar versão</button>
+        {% endif %}
+      </div>
+      {% if version.state != 'published' %}
+      <label class="check"><input type="checkbox" name="checked" value="yes" required> Confirmei a legibilidade e a integridade do documento.</label>
+      <button class="primary" name="action" value="publish">Publicar versão</button>
+      {% endif %}
+      {% endif %}
+    </form>
+    {% endif %}
+  </article>
+  {% empty %}<p class="admin-empty-message muted">Ainda não foram carregados documentos.</p>{% endfor %}
+</section>
 {% endblock %}

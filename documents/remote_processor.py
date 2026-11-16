@@ -16,12 +16,12 @@ from threading import BoundedSemaphore
 from time import monotonic, sleep, time
 from urllib.parse import urlsplit
 
+from .formats import CONVERTED_FORMATS, SUPPORTED_FORMATS
 from .worker import run_one
 
 
 MAX_BYTES = 1024**3
 CHUNK_BYTES = 64 * 1024
-FORMAT_TYPES = {"pdf", "docx"}
 
 
 class Unavailable(Exception):
@@ -75,7 +75,7 @@ def process(url, token, source, file_format, target):
             if not 1 <= pages <= 1_000_000:
                 raise ValueError("Número de páginas inválido.")
             size = int(response.getheader("Content-Length"))
-            if file_format == "docx":
+            if file_format in CONVERTED_FORMATS:
                 if not 0 < size <= MAX_BYTES or shutil.disk_usage(target.parent).free < size:
                     raise ValueError("O PDF convertido excede o espaço disponível.")
                 with target.open("wb") as output:
@@ -182,7 +182,7 @@ class Handler(BaseHTTPRequestHandler):
             size = int(self.headers.get("Content-Length", ""))
         except ValueError:
             size = 0
-        if file_format not in FORMAT_TYPES or not 0 < size <= MAX_BYTES or self.headers.get("Transfer-Encoding"):
+        if file_format not in SUPPORTED_FORMATS or not 0 < size <= MAX_BYTES or self.headers.get("Transfer-Encoding"):
             self.reply(400)
             return
         if not signatures_ready():
@@ -193,7 +193,7 @@ class Handler(BaseHTTPRequestHandler):
             return
         try:
             with job_directory(self.server.spool) as folder:
-                footprint = 4 if file_format == "docx" else 1
+                footprint = 4 if file_format in CONVERTED_FORMATS else 1
                 if shutil.disk_usage(folder).free < footprint * size + 128 * 1024**2:
                     self.reply(503)
                     return
@@ -207,7 +207,7 @@ class Handler(BaseHTTPRequestHandler):
                     self.reply(422, json.dumps(result).encode(), **{"Content-Type": "application/json"})
                     return
                 pdf = folder / "reader.pdf"
-                size = pdf.stat().st_size if file_format == "docx" else 0
+                size = pdf.stat().st_size if file_format in CONVERTED_FORMATS else 0
                 if size > MAX_BYTES:
                     self.reply(422, json.dumps({"error": "O PDF convertido é demasiado grande."}).encode())
                     return

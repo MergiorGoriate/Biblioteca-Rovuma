@@ -1,22 +1,66 @@
-{% extends "base.html" %}
+{% extends "portal_base.html" %}{% load static %}
 {% block title %}Catálogo · Biblioteca Rovuma{% endblock %}
+{% block body_class %}{{ block.super }} catalogue-page{% endblock %}
+
+{% block header_bottom %}
+<div class="catalogue-filters" role="group" aria-label="Filtros do catálogo">
+  <div class="catalogue-filter">
+    <label for="catalogue-tipo" class="sr-only">Tipo</label>
+    {% include "management/icon.html" with icon="file" %}
+    <select form="portal-search" id="catalogue-tipo" name="tipo"{% if kind %} data-active="true"{% endif %}>
+      <option value="">Tipo</option>
+      {% for value,label in kinds %}<option value="{{ value }}"{% if kind == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+    </select>
+    {% include "management/icon.html" with icon="chevron" %}
+  </div>
+  <div class="catalogue-filter">
+    <label for="catalogue-idioma" class="sr-only">Idioma</label>
+    {% include "management/icon.html" with icon="tags" %}
+    <select form="portal-search" id="catalogue-idioma" name="idioma"{% if language %} data-active="true"{% endif %}>
+      <option value="">Idioma</option>
+      {% for value in languages %}<option{% if language == value %} selected{% endif %}>{{ value }}</option>{% endfor %}
+    </select>
+    {% include "management/icon.html" with icon="chevron" %}
+  </div>
+  <div class="catalogue-filter catalogue-year">
+    <label for="catalogue-ano" class="sr-only">Ano</label>
+    {% include "management/icon.html" with icon="calendar" %}
+    <input form="portal-search" id="catalogue-ano" name="ano" value="{{ year }}" inputmode="numeric" maxlength="4" placeholder="Ano"{% if year %} data-active="true"{% endif %}>
+  </div>
+  <div class="catalogue-filter">
+    <label for="catalogue-formato" class="sr-only">Formato</label>
+    {% include "management/icon.html" with icon="books" %}
+    <select form="portal-search" id="catalogue-formato" name="formato"{% if format %} data-active="true"{% endif %}>
+      <option value="">Formato</option>
+      <option value="digital"{% if format == 'digital' %} selected{% endif %}>Leitura digital</option>
+      <option value="fisico"{% if format == 'fisico' %} selected{% endif %}>Consulta local</option>
+      <option value="ambos"{% if format == 'ambos' %} selected{% endif %}>Ambos</option>
+    </select>
+    {% include "management/icon.html" with icon="chevron" %}
+  </div>
+  <button class="primary" type="submit" form="portal-search">Aplicar filtros</button>
+  {% if q or kind or language or year or format %}<a class="plain" href="{% url 'catalogue' %}">Limpar</a>{% endif %}
+</div>
+{% endblock %}
+
 {% block content %}
-<div class="section-head"><div><p class="eyebrow">Acervo</p><h1>Catálogo da biblioteca</h1></div></div>
-<form class="panel filters" method="get">
-<label class="wide">Pesquisar<input name="q" value="{{ q }}" placeholder="Título, autor, assunto ou identificador"></label>
-<label>Tipo<select name="tipo"><option value="">Todos</option>{% for value,label in kinds %}<option value="{{ value }}" {% if kind == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-<label>Idioma<select name="idioma"><option value="">Todos</option>{% for value in languages %}<option {% if language == value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select></label>
-<label>Ano<input name="ano" value="{{ year }}" inputmode="numeric" maxlength="4" placeholder="Todos"></label>
-<label>Formato<select name="formato"><option value="">Todos</option><option value="digital" {% if format == 'digital' %}selected{% endif %}>Digital</option><option value="fisico" {% if format == 'fisico' %}selected{% endif %}>Consulta local</option><option value="ambos" {% if format == 'ambos' %}selected{% endif %}>Ambos</option></select></label>
-<button class="primary">Aplicar filtros</button><a href="{% url 'catalogue' %}">Limpar</a>
-</form>
-<section class="section"><div class="section-head"><h2>Obras</h2><span class="muted">{{ page.paginator.count }} resultado{{ page.paginator.count|pluralize }}</span></div>
-<div class="grid">{% for work in page %}
-<article class="work-card"><a class="cover" href="{% url 'work' work.pk %}" aria-hidden="true" tabindex="-1"><img loading="lazy" width="400" height="280" src="{% url 'cover' work.pk %}" alt=""></a><div class="card-body">
-<p class="eyebrow">{{ work.get_kind_display }}</p><h3><a href="{% url 'work' work.pk %}">{{ work.title }}</a></h3>
-{% if work.authors.all %}<p class="muted">{{ work.authors.all|join:", " }}</p>{% endif %}
-<div class="tags">{% if work.digital %}<span>Digital</span>{% endif %}{% if work.physical %}<span>Consulta local</span>{% endif %}</div>
-</div></article>{% empty %}<div class="empty">Nenhuma obra corresponde à pesquisa.</div>{% endfor %}</div>
-{% include "pagination.html" %}
-<p class="small muted">O acervo físico continua em actualização.</p></section>
+<section aria-labelledby="catalogue-title">
+  <div class="section-head catalogue-results-heading">
+    <h1 id="catalogue-title" tabindex="-1">Obras</h1>
+    <span class="muted">{{ page.paginator.count }} resultado{{ page.paginator.count|pluralize }}</span>
+  </div>
+  <div class="portal-book-grid">
+    {% for work in page %}{% include 'book_card.html' %}{% empty %}<div class="empty">Nenhuma obra corresponde à pesquisa.</div>{% endfor %}
+  </div>
+  {% include "pagination.html" %}
+  <p class="small muted catalogue-acervo-note">O acervo físico continua em actualização.</p>
+</section>
+<button type="button" id="catalogue-back-to-top" class="catalogue-back-to-top" aria-label="Voltar ao topo" title="Voltar ao topo" hidden>
+  {% include "management/icon.html" with icon="arrow" %}
+</button>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'portal-motion.js' %}" defer></script>
+<script src="{% static 'catalogue-scroll.js' %}" defer></script>
 {% endblock %}

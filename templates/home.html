@@ -1,12 +1,37 @@
-{% extends "base.html" %}
+{% extends "portal_base.html" %}{% load static %}
 {% block title %}Portal da biblioteca · Biblioteca Rovuma{% endblock %}
 {% block content %}
-<section class="hero"><p class="eyebrow">Universidade Rovuma</p><h1>A sua biblioteca</h1>
-<p>Encontre obras digitais e descubra onde consultar os livros do acervo físico.</p>
-<form class="search" action="{% url 'catalogue' %}" method="get"><label class="sr-only" for="home-q">Pesquisar obras</label><input id="home-q" name="q" placeholder="Título, autor, assunto ou identificador"><button class="primary">Pesquisar</button></form>
-<a class="hero-link" href="{% url 'catalogue' %}">Explorar o catálogo <span aria-hidden="true">→</span></a>
+<section class="portal-hero">
+  <div class="portal-hero-content">
+    <h1>A sua biblioteca</h1>
+    <p>Pesquise obras digitais e encontre os livros disponíveis para consulta na biblioteca.</p>
+    <nav class="portal-shortcuts" aria-label="Formatos do acervo">
+      <a href="{% url 'catalogue' %}?formato=digital">Leitura digital <span aria-hidden="true">↗</span></a>
+      <a href="{% url 'catalogue' %}?formato=fisico">Consulta local <span aria-hidden="true">↗</span></a>
+    </nav>
+  </div>
+  <img class="portal-hero-image" src="{% static 'portal-biblioteca.webp' %}" width="990" height="660" fetchpriority="high" alt="">
 </section>
-{% if nav_student %}<section class="section"><div class="section-head"><h2>Continuar a ler</h2><a href="{% url 'library' %}">Ver minhas leituras</a></div>
-{% if recent %}<div class="grid">{% for item in recent %}<article class="panel"><p class="eyebrow">Página {{ item.page }}</p><h3><a href="{% url 'reader' item.version_id %}">{{ item.version.document.edition.work.title }}</a></h3></article>{% endfor %}</div>
-{% else %}<div class="empty">As obras que começar a ler aparecem aqui.</div>{% endif %}</section>{% endif %}
+
+{% if recent %}
+<section class="portal-section">
+  <div class="section-head"><h2>Continuar a ler</h2><a href="{% url 'library' %}">Minhas leituras</a></div>
+  <div class="grid">{% for item in recent %}
+    <article class="panel"><p class="eyebrow">Página {{ item.page }}</p><h3><a href="{% url 'reader' item.version_id %}">{{ item.version.document.edition.work.title }}</a></h3></article>
+  {% endfor %}</div>
+</section>
+{% endif %}
+
+<section class="portal-section">
+  <div class="section-head"><h2>Explore o acervo</h2><a href="{% url 'catalogue' %}">Ver catálogo <span aria-hidden="true">→</span></a></div>
+  <div class="portal-book-grid">
+  {% for work in featured %}{% include 'book_card.html' %}{% empty %}
+    <div class="empty">Ainda não há obras publicadas no catálogo.</div>
+  {% endfor %}
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'portal-motion.js' %}" defer></script>
 {% endblock %}
