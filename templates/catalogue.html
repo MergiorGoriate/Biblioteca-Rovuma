@@ -1,4 +1,4 @@
-{% extends "portal_base.html" %}
+{% extends "portal_base.html" %}{% load static %}
 {% block title %}Catálogo · Biblioteca Rovuma{% endblock %}
 {% block body_class %}{{ block.super }} catalogue-page{% endblock %}
 
@@ -46,7 +46,7 @@
 {% block content %}
 <section aria-labelledby="catalogue-title">
   <div class="section-head catalogue-results-heading">
-    <h1 id="catalogue-title">Obras</h1>
+    <h1 id="catalogue-title" tabindex="-1">Obras</h1>
     <span class="muted">{{ page.paginator.count }} resultado{{ page.paginator.count|pluralize }}</span>
   </div>
   <div class="portal-book-grid">
@@ -55,4 +55,11 @@
   {% include "pagination.html" %}
   <p class="small muted catalogue-acervo-note">O acervo físico continua em actualização.</p>
 </section>
+<button type="button" id="catalogue-back-to-top" class="catalogue-back-to-top" aria-label="Voltar ao topo" title="Voltar ao topo" hidden>
+  {% include "management/icon.html" with icon="arrow" %}
+</button>
+{% endblock %}
+
+{% block scripts %}
+<script src="{% static 'catalogue-scroll.js' %}" defer></script>
 {% endblock %}

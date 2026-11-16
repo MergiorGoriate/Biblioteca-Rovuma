@@ -31,6 +31,24 @@ html:has(.catalogue-page) { scroll-padding-block-start: 155px; }
 .reader-portal .management-navigation a { overflow-wrap: anywhere; }
 .reader-portal .theme-label { white-space: nowrap; }
 .reader-portal .site-header .brand { font-weight: 730; }
+.catalogue-back-to-top {
+  position: fixed;
+  right: max(22px, calc(env(safe-area-inset-right) + 12px));
+  bottom: max(22px, calc(env(safe-area-inset-bottom) + 12px));
+  z-index: 3;
+  width: 48px;
+  height: 48px;
+  padding: 0;
+  place-items: center;
+  border: 1px solid #c5cad3;
+  border-radius: 50%;
+  color: #1d2433;
+  background: #fff;
+  box-shadow: 0 3px 12px #141b2938;
+}
+.catalogue-back-to-top:not([hidden]) { display: grid; }
+.catalogue-back-to-top:hover { background: #eef2f8; }
+.catalogue-back-to-top .admin-icon { width: 23px; height: 23px; transform: rotate(-90deg); }
 .catalogue-filters {
   display: flex;
   align-items: center;
