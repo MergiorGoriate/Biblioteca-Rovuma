@@ -88,7 +88,7 @@ def activate(request, token):
     if request.method == "POST" and form.is_valid():
         from django.contrib.auth.password_validation import validate_password
         validate_password(form.cleaned_data["new_password1"], user)
-        user.set_password(form.cleaned_data["password1"])
+        user.set_password(form.cleaned_data["new_password1"])
         user.state = User.State.ACTIVE
         user.is_active = True
         user.activation_token_hash = ""
@@ -122,7 +122,7 @@ def credential(request, pk):
                 account.save()
                 record(request.user, "credential", action, account.pk, reason=request.POST["reason"])
                 return redirect("credential", pk=pk)
-        elif action == "activate" and account.state == User.State.PENDING:
+        elif action == "activate" and not account.is_active:
             token = secrets.token_urlsafe(32)
             account.activation_token_hash = hashlib.sha256(token.encode()).hexdigest()
             account.activation_expires = timezone.now() + timedelta(minutes=30)
