@@ -1,6 +1,8 @@
+import json
 from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
+from unittest.mock import patch
 
 from django.contrib.auth.models import Permission
 from django.core.management import call_command
@@ -201,6 +203,40 @@ class LibraryTest(TestCase):
         self.student.refresh_from_db()
         self.assertTrue(self.student.check_password("New!Example-135"))
         self.assertEqual(User.objects.filter(username="0007").count(), 1)
+
+    @override_settings(
+        EMAIL_BACKEND="rovuma.resend_backend.ResendEmailBackend",
+        DEFAULT_FROM_EMAIL="biblioteca@example.invalid",
+    )
+    def test_password_recovery_via_resend(self):
+        self.student.verified_email = "validado@example.invalid"
+        self.student.save(update_fields=["verified_email"])
+
+        with patch.dict("os.environ", {"RESEND_API_KEY": "chave-de-ensaio"}), patch(
+            "rovuma.resend_backend.urlopen"
+        ) as send:
+            response = self.client.post(
+                self.url("password_reset"), {"email": self.student.verified_email}, secure=True,
+            )
+        self.assertRedirects(response, self.url("password_reset_done"))
+
+        send.assert_called_once()
+        request = send.call_args.args[0]
+        self.assertEqual(request.full_url, "https://api.resend.com/emails")
+        self.assertEqual(request.get_method(), "POST")
+        self.assertEqual(request.get_header("Authorization"), "Bearer chave-de-ensaio")
+        payload = json.loads(request.data)
+        self.assertEqual(payload["from"], "biblioteca@example.invalid")
+        self.assertEqual(payload["to"], [self.student.verified_email])
+        link = next(line for line in payload["text"].splitlines() if line.startswith("https://"))
+
+        response = self.client.get(link, secure=True)
+        self.assertEqual(response.status_code, 302)
+        result = self.client.post(response.url, {
+            "new_password1": "New!Example-135", "new_password2": "New!Example-135",
+        }, secure=True)
+        self.assertRedirects(result, self.url("password_reset_complete"))
+        self.assertTrue(self.client.login(username=self.student.username, password="New!Example-135"))
 
     def test_manual_identity_activation_is_single_use(self):
         pending = User.objects.create(username="0008", institutional_number="0008", is_active=False,

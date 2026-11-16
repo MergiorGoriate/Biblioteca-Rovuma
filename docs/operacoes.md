@@ -13,6 +13,10 @@ O Caddy permite até 6 MB por pedido. O JavaScript envia partes de 1 MiB e a apl
 
 A separação de ambientes usa bases, volumes, segredos e domínios distintos. Em homologação, adopte dados fictícios ou devidamente anonimizados. Agende `docker compose exec -T web python manage.py clean_uploads` diariamente. Depois de 72 horas a transferência incompleta deve começar de novo. Monitorize espaço livre, falhas de análise, tamanho da fila e actualização das assinaturas. Evite que o proxy, a observabilidade ou o SMTP registrem caminhos com tokens. Restrinja acesso aos logs administrativos.
 
+## Correio por HTTPS no Railway
+
+No serviço web do ambiente de homologação, defina `EMAIL_BACKEND=rovuma.resend_backend.ResendEmailBackend`, guarde a chave de envio em `RESEND_API_KEY` e use em `DEFAULT_FROM_EMAIL` um remetente do domínio verificado no Resend. Desactive o rastreio de cliques no domínio de envio para preservar a ligação de recuperação. Com uma conta local de ensaio e um endereço validado, peça a recuperação pelo formulário, confirme a chegada da mensagem e use a ligação HTTPS para definir uma nova senha. Confirme que a nova senha permite iniciar sessão e que a ligação usada deixa de funcionar.
+
 ## Cópias e restauro
 
 O script `ops/backup.sh` usa Restic para deduplicar e encriptar os dados num repositório externo. Configure `RESTIC_REPOSITORY`, `RESTIC_PASSWORD_FILE` e permissões de escrita restritas. Inicialize com `restic init` uma vez. Programe a execução diária fora das horas de maior utilização, por exemplo com cron. Registe a saída e, se houver, configure `BACKUP_ALERT_COMMAND` como o caminho para um programa que notifique falhas. A retenção usa `KEEP_DAILY`, `KEEP_WEEKLY` e `KEEP_MONTHLY`. O script interrompe temporariamente os escritores da aplicação para obter uma cópia coerente e relança-os antes de fazer a transferência.

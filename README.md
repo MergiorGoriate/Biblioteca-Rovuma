@@ -11,16 +11,12 @@ python -m venv .venv
 . .venv/bin/activate
 python -m pip install -r requirements.txt
 python manage.py migrate
-python manage.py demo_rovuma
 python manage.py runserver 127.0.0.1:8000
 ```
 
-Abra [Biblioteca Rovuma](http://127.0.0.1:8000). Em Windows use `.venv\Scripts\activate` ou execute `.venv\Scripts\python.exe` directamente. As contas e o acervo seguintes são fictícios e o comando recusa a instalação em produção.
+Abra [Biblioteca Rovuma](http://127.0.0.1:8000). Em Windows use `.venv\Scripts\activate` ou execute `.venv\Scripts\python.exe` directamente.
 
-| Perfil | Nome de utilizador | Senha |
-|---|---|---|
-| Estudante | `000042` | `Rovuma!Demo-42` |
-| Bibliotecário | `bibliotecario.demo` | `Acervo!Demo-42` |
+As migrações criam a estrutura da base de dados. As contas são provisionadas separadamente em cada instalação. Para um primeiro acesso, peça ao responsável pela instalação que confirme o registo da conta e emita uma ligação de activação. A conta e a palavra-passe fictícias de uma instalação local não dão acesso ao ambiente de teste online.
 
 Para analisar novos documentos num ambiente local com ficheiros de teste, execute em dois terminais adicionais `python manage.py dispatch_documents` e `python -m documents.worker --spool var/spool`. Instale ClamAV com assinaturas e LibreOffice Writer. Para um ensaio com documentos próprios e inofensivos, a opção explícita `--development-no-antivirus` permite executar o teste estrutural sem ClamAV. A configuração de produção usa o processador em contentor, sem essa opção.
 
