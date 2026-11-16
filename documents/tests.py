@@ -179,9 +179,21 @@ class LibraryTest(TestCase):
 
     def test_password_recovery_changes_existing_account(self):
         from django.core import mail
+        self.student.email = "geral@example.invalid"
         self.student.verified_email = "validado@example.invalid"
         self.student.save()
-        self.client.post(self.url("password_reset"), {"email": self.student.verified_email})
+        User.objects.create_user(
+            username="institutional", password="Test!Institutional",
+            verified_email=self.student.verified_email, identity_source=User.Identity.INSTITUTIONAL,
+        )
+        User.objects.create_user(username="without-password", verified_email=self.student.verified_email)
+        response = self.client.post(self.url("password_reset"), {"email": self.student.email})
+        self.assertRedirects(response, self.url("password_reset_done"))
+        self.assertEqual(len(mail.outbox), 0)
+        response = self.client.post(self.url("password_reset"), {"email": self.student.verified_email})
+        self.assertRedirects(response, self.url("password_reset_done"))
+        self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(mail.outbox[0].to, [self.student.verified_email])
         link = next(line for line in mail.outbox[0].body.splitlines() if line.startswith("http"))
         response = self.client.get(link)
         result = self.client.post(response.url, {"new_password1": "New!Example-135", "new_password2": "New!Example-135"})
@@ -202,7 +214,7 @@ class LibraryTest(TestCase):
         self.assertTrue(self.client.login(username="0008", password="First!Example-135"))
 
     def test_physical_location_and_native_search(self):
-        location = Location.objects.create(library="Unidade de teste", room="Sala N", shelf="Estante 3", level="Prateleira 2")
+        location = Location.objects.create(name="Unidade de teste", description="Sala N, Estante 3, Prateleira 2")
         Copy.objects.create(edition=self.edition, location=location, inventory="000-A")
         self.enter()
         self.assertContains(self.client.get(self.url("work", self.work.pk)), "Consulta local na biblioteca")
@@ -212,7 +224,7 @@ class LibraryTest(TestCase):
 
     def test_technical_profile_has_no_editorial_access(self):
         technical = User.objects.create_superuser("tech", password="never-used")
-        technical.user_permissions.add(Permission.objects.get(codename="technical_role"))
+        technical.user_permissions.add(Permission.objects.get(codename="view_user", content_type__app_label="accounts"))
         self.client.force_login(technical)
         self.assertEqual(self.client.get(self.url("collection")).status_code, 403)
         self.assertEqual(self.client.get(self.url("students")).status_code, 403)

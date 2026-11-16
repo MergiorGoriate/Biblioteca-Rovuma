@@ -1,0 +1,1 @@
+{% extends "base.html" %}{% block content %}<section class="panel"><h1>Corrigir número institucional</h1><p>{{ account.username }}</p><form method="post">{% csrf_token %}<label>Novo número<input name="number" required></label><label>Justificação<input name="reason" required></label><button>Confirmar correcção</button></form></section>{% endblock %}
