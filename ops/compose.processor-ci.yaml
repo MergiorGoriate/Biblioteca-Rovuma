@@ -1,6 +1,4 @@
 services:
   processor:
-    environment:
-      PATH: /op./ops/clamav-ci:/usr/local/bin:/usr/bin:/bin
     volumes:
       - ./ops/clamav-ci:/opt/clamav-ci:ro

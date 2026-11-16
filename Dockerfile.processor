@@ -1,19 +1,23 @@
 FROM clamav/clamav:stable AS signatures
 
-FROM python:3.12-slim-bookworm
+FROM debian:trixie-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 HOME=/tmp
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    clamav clamav-freshclam libreoffice-writer fonts-dejavu-core fonts-liberation \
+    clamav clamav-freshclam libreoffice-writer fonts-dejavu-core fonts-liberation python3 python3-venv ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd -g 10001 rovuma && useradd -m -u 10001 -g 10001 rovuma
+    && groupadd -g 10001 rovuma && useradd -m -u 10001 -g 10001 rovuma \
+    && install -o rovuma -g rovuma -m 0700 -d /data/spool
 COPY --from=signatures --chown=10001:10001 /var/lib/clamav/ /var/lib/clamav/
 RUN (test -f /var/lib/clamav/daily.cvd || test -f /var/lib/clamav/daily.cld) \
     && chown -R 10001:10001 /var/lib/clamav
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN python3 -m venv /opt/rovuma \
+    && /opt/rovuma/bin/pip install --no-cache-dir pypdf==6.21.4 defusedxml==0.7.1
+ENV PATH=/opt/rovuma/bin:$PATH
 COPY --chown=10001:10001 documents/ documents/
 COPY --chown=10001:10001 ops/start_processor.sh ops/start_processor.sh
 COPY --chown=10001:10001 ops/verify_processor.py ops/verify_processor.py
+COPY ops/freshclam.processor.conf /etc/freshclam.processor.conf
 USER rovuma
+RUN clamscan --no-summary /etc/debian_version && python -m ops.verify_processor
 CMD ["sh", "ops/start_processor.sh"]

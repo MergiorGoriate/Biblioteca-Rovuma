@@ -1,4 +1,4 @@
-"""Private HTTP transport for one quarantined document at a time."""
+"""Authenticated transport for one quarantined document at a time."""
 
 import hashlib
 import hmac
@@ -8,10 +8,12 @@ import os
 import shutil
 import socket
 import tempfile
+import uuid
+from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import BoundedSemaphore
-from time import time
+from time import monotonic, sleep, time
 from urllib.parse import urlsplit
 
 from .worker import run_one
@@ -39,10 +41,15 @@ def transfer(source, target, size):
 
 def process(url, token, source, file_format, target):
     parsed = urlsplit(url)
-    if (parsed.scheme != "http" or not parsed.hostname or not parsed.hostname.endswith(".railway.internal")
-            or parsed.username or parsed.password or parsed.path or parsed.query or parsed.fragment or len(token) < 32):
+    if (not parsed.hostname or parsed.username is not None or parsed.path or parsed.query
+            or parsed.fragment or len(token) < 32):
         raise ValueError("Configuração do processador inválida.")
-    conn = http.client.HTTPConnection(parsed.hostname, parsed.port or 8080, timeout=850)
+    if parsed.scheme == "https":
+        conn = http.client.HTTPSConnection(parsed.hostname, parsed.port or 443, timeout=850)
+    elif parsed.scheme == "http" and parsed.hostname.endswith(".railway.internal"):
+        conn = http.client.HTTPConnection(parsed.hostname, parsed.port or 8080, timeout=850)
+    else:
+        raise ValueError("Configuração do processador inválida.")
     try:
         with source.open("rb") as stream:
             conn.request("POST", "/process", stream, {
@@ -83,19 +90,55 @@ def process(url, token, source, file_format, target):
 
 
 def signatures_ready():
-    return any(time() - path.stat().st_mtime < 14 * 86400
-               for path in Path("/var/lib/clamav").glob("daily.c[vl]d"))
+    for path in Path("/var/lib/clamav").glob("daily.c[vl]d"):
+        try:
+            if time() - path.stat().st_mtime < 14 * 86400:
+                return True
+        except FileNotFoundError:
+            continue
+    return False
+
+
+@contextmanager
+def job_directory(spool):
+    if spool is None:
+        with tempfile.TemporaryDirectory() as directory:
+            yield Path(directory)
+    else:
+        cutoff = time() - 3600
+        for pending in spool.iterdir():
+            if pending.is_dir() and pending.stat().st_mtime < cutoff:
+                shutil.rmtree(pending, ignore_errors=True)
+        folder = spool / str(uuid.uuid4())
+        folder.mkdir()
+        try:
+            yield folder
+        finally:
+            shutil.rmtree(folder, ignore_errors=True)
+
+
+def run_job(folder, spool):
+    if spool is None:
+        return run_one(folder, True)
+    result = folder / "result.json"
+    deadline = monotonic() + 720
+    while monotonic() < deadline:
+        if result.is_file():
+            return json.loads(result.read_text(encoding="utf-8"))
+        sleep(1)
+    raise Unavailable
 
 
 class ProcessorServer(ThreadingHTTPServer):
     daemon_threads = True
     address_family = socket.AF_INET6
 
-    def __init__(self, address, token):
+    def __init__(self, address, token, spool=None):
         if len(token) < 32:
             raise ValueError("Defina uma chave privada para o processador.")
         self.authorization = f"Bearer {token}"
         self.slot = BoundedSemaphore()
+        self.spool = spool
         super().__init__(address, Handler)
 
 
@@ -149,16 +192,17 @@ class Handler(BaseHTTPRequestHandler):
             self.reply(429)
             return
         try:
-            with tempfile.TemporaryDirectory() as directory:
-                folder = Path(directory)
-                footprint = 3 if file_format == "docx" else 1
+            with job_directory(self.server.spool) as folder:
+                footprint = 4 if file_format == "docx" else 1
                 if shutil.disk_usage(folder).free < footprint * size + 128 * 1024**2:
                     self.reply(503)
                     return
                 with (folder / "original").open("wb") as target:
                     transfer(self.rfile, target, size)
-                (folder / "request.json").write_text(json.dumps({"format": file_format}))
-                result = run_one(folder, True)
+                metadata = folder / "request.tmp"
+                metadata.write_text(json.dumps({"format": file_format}), encoding="utf-8")
+                metadata.replace(folder / "request.json")
+                result = run_job(folder, self.server.spool)
                 if result.get("error"):
                     self.reply(422, json.dumps(result).encode(), **{"Content-Type": "application/json"})
                     return
@@ -177,6 +221,8 @@ class Handler(BaseHTTPRequestHandler):
                 if size:
                     with pdf.open("rb") as source:
                         transfer(source, self.wfile, size)
+        except Unavailable:
+            self.reply(503)
         except (OSError, ValueError):
             self.close_connection = True
         finally:
@@ -184,4 +230,6 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    ProcessorServer(("::", 8080), os.environ["ROVUMA_PROCESSOR_TOKEN"]).serve_forever()
+    spool_path = os.environ.get("ROVUMA_PROCESSOR_SPOOL")
+    spool = Path(spool_path) if spool_path else None
+    ProcessorServer(("::", 8080), os.environ["ROVUMA_PROCESSOR_TOKEN"], spool).serve_forever()
