@@ -14,7 +14,13 @@
 .reader-portal .management-content { padding-top: clamp(18px, 3vw, 34px); }
 .reader-portal .management-navigation a { overflow-wrap: anywhere; }
 .reader-portal .theme-label { white-space: nowrap; }
+.reader-portal .site-header {
+  position: sticky;
+  top: var(--admin-gap);
+  z-index: 4;
+}
 .reader-portal .site-header .brand { font-weight: 730; }
+.reader-portal #conteudo { scroll-margin-top: 100px; }
 .catalogue-filters { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .catalogue-filters .primary { white-space: normal; width: auto; justify-self: start; }
 .portal-hero {
@@ -59,6 +65,8 @@
   .reader-portal .management-rail { align-content: start; }
 }
 @media (max-width: 740px) {
+  .reader-portal .site-header { top: 10px; }
+  .reader-portal #conteudo { scroll-margin-top: 135px; }
   .reader-portal .management-rail { padding: 5px; margin: 0; }
   .reader-portal .management-navigation { display: flex; flex-wrap: wrap; gap: 3px; }
   .reader-portal .management-navigation a {

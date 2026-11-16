@@ -21,6 +21,16 @@ with sync_playwright() as playwright:
         page.get_by_role("button", name="Entrar").click()
         expect(page.get_by_role("heading", name="A sua biblioteca")).to_be_visible()
         expect(page.get_by_role("heading", name="Explore o acervo")).to_be_visible()
+        header = page.get_by_role("banner")
+        initial_top = header.evaluate("bar => bar.getBoundingClientRect().top")
+        page.evaluate("window.scrollTo(0, document.documentElement.scrollHeight)")
+        expect(header).to_be_in_viewport(ratio=1)
+        assert page.evaluate("window.scrollY") > 0
+        assert abs(header.evaluate("bar => bar.getBoundingClientRect().top") - initial_top) <= 1
+        expect(page.get_by_role("button", name="Pesquisar", exact=True)).to_be_in_viewport(ratio=1)
+        expect(page.get_by_role("button", name="Sair", exact=True)).to_be_in_viewport(ratio=1)
+        expect(page.get_by_role("button", name="Activar modo escuro")).to_be_in_viewport(ratio=1)
+        page.evaluate("window.scrollTo(0, 0)")
         portal_nav = page.get_by_role("navigation", name="Portal da biblioteca")
         expect(portal_nav.get_by_role("link", name="Início", exact=True)).to_have_attribute("aria-current", "page")
         expect(portal_nav.get_by_role("link", name="Painel administrativo")).to_have_count(0)
