@@ -143,7 +143,8 @@ with sync_playwright() as playwright:
             menu.click()
         navigation.get_by_role("link", name="Exemplares físicos", exact=True).click()
         expect(page.get_by_role("heading", name="Exemplares físicos")).to_be_visible()
-        expect(page.get_by_role("link", name="Editar exemplar")).to_be_visible()
+        physical = page.locator("article").filter(has=page.get_by_role("heading", name="Escrita académica"))
+        expect(physical.get_by_role("link", name="Editar exemplar")).to_be_visible()
         if mobile:
             menu.click()
         navigation.get_by_role("link", name="Estudantes", exact=True).click()
