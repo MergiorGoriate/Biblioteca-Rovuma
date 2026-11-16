@@ -3,10 +3,10 @@
 {% block content %}
 <div class="section-head"><div><p class="eyebrow">Acervo</p><h1>Catálogo da biblioteca</h1></div></div>
 <div class="panel filters catalogue-filters">
-<label>Tipo<select form="portal-search" name="tipo"><option value="">Todos</option>{% for value,label in kinds %}<option value="{{ value }}" {% if kind == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
-<label>Idioma<select form="portal-search" name="idioma"><option value="">Todos</option>{% for value in languages %}<option {% if language == value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select></label>
-<label>Ano<input form="portal-search" name="ano" value="{{ year }}" inputmode="numeric" maxlength="4" placeholder="Todos"></label>
-<label>Formato<select form="portal-search" name="formato"><option value="">Todos</option><option value="digital" {% if format == 'digital' %}selected{% endif %}>Digital</option><option value="fisico" {% if format == 'fisico' %}selected{% endif %}>Consulta local</option><option value="ambos" {% if format == 'ambos' %}selected{% endif %}>Ambos</option></select></label>
+<div><label for="catalogue-tipo">Tipo</label><select form="portal-search" id="catalogue-tipo" name="tipo"><option value="">Todos</option>{% for value,label in kinds %}<option value="{{ value }}" {% if kind == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+<div><label for="catalogue-idioma">Idioma</label><select form="portal-search" id="catalogue-idioma" name="idioma"><option value="">Todos</option>{% for value in languages %}<option {% if language == value %}selected{% endif %}>{{ value }}</option>{% endfor %}</select></div>
+<div><label for="catalogue-ano">Ano</label><input form="portal-search" id="catalogue-ano" name="ano" value="{{ year }}" inputmode="numeric" maxlength="4" placeholder="Todos"></div>
+<div><label for="catalogue-formato">Formato</label><select form="portal-search" id="catalogue-formato" name="formato"><option value="">Todos</option><option value="digital" {% if format == 'digital' %}selected{% endif %}>Digital</option><option value="fisico" {% if format == 'fisico' %}selected{% endif %}>Consulta local</option><option value="ambos" {% if format == 'ambos' %}selected{% endif %}>Ambos</option></select></div>
 <button class="primary" type="submit" form="portal-search">Aplicar filtros</button><a href="{% url 'catalogue' %}">Limpar</a>
 </div>
 <section class="section"><div class="section-head"><h2>Obras</h2><span class="muted">{{ page.paginator.count }} resultado{{ page.paginator.count|pluralize }}</span></div>
