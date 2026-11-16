@@ -1,12 +1,59 @@
 # Biblioteca Rovuma
 
-Aplicação Django para o catálogo privado da Biblioteca da Universidade Rovuma. O projecto usa PostgreSQL em produção e suporta SQLite numa instalação local. A interface usa uma paleta azul e branca inspirada na Universidade Rovuma e um ícone próprio da aplicação.
+Biblioteca digital e catálogo do acervo físico da Universidade Rovuma. A aplicação reúne a pesquisa e a leitura de obras, a localização de exemplares e a gestão do acervo, dos documentos e do credenciamento de estudantes. O acesso é reservado a contas autorizadas.
+
+**Ambiente de teste:** [Portal do leitor](https://biblioteca-web-teste.up.railway.app/portal/) · [Catálogo](https://biblioteca-web-teste.up.railway.app/catalogo/) · [Painel administrativo](https://biblioteca-web-teste.up.railway.app/admin/)
+
+## O que foi implementado
+
+### Portal e catálogo
+
+- Pesquisa por título, subtítulo, autor, assunto, palavra-chave ou identificador. O catálogo tem filtros por tipo, idioma, ano e formato, incluindo obras digitais, físicas ou disponíveis nos dois formatos.
+- Página inicial com obras em destaque e a secção **Continuar a ler**. A ficha de cada obra apresenta edições, identificadores, modalidades de acesso digital e, quando aplicável, exemplares para consulta local.
+- Inventário físico com unidade, sala, estante e prateleira. A contagem indica os exemplares registados para consulta local. A disponibilidade imediata confirma-se na biblioteca.
+- Leitor de PDF no navegador com navegação por página, ajuste de largura, pesquisa no texto quando disponível, marcadores e retoma da última página. **Minhas leituras** reúne o progresso e os marcadores do estudante.
+- No ambiente de teste, o portal e o painel têm uma interface adaptada a computador e telemóvel, com navegação por ícones e modos claro e escuro que guardam a preferência. As barras superiores de pesquisa ficam fixas durante a deslocação. No catálogo, os filtros ficam na barra superior e a barra de deslocação fica na extremidade direita da página.
+
+### Painel administrativo
+
+- Entrada própria em `/admin/entrar/` e painel em `/admin/`. As secções disponíveis dependem das permissões da conta. As ligações anteriores em `/gestao/` encaminham para o painel actual.
+- Visão geral com contagens do acervo, da fila de documentos e do credenciamento. Os atalhos conduzem às listas correspondentes.
+- Gestão de obras, edições, autores, assuntos, identificadores, capas, localizações e exemplares físicos. O inventário permite pesquisar por obra, localização ou número de inventário.
+- Pesquisa de obras pelo título, filtro por estado e acção **Nova obra**. A barra superior fixa no ambiente de teste mantém acessíveis a pesquisa, a mudança de tema, **Abrir portal** e **Sair**. Em telemóvel, os atalhos administrativos estão no **Menu administrativo**.
+- Fila com estados de processamento e revisão, motivo de falha e opção de reagendar. O bibliotecário regista a autorização de uso, pré-visualiza o PDF, confirma a revisão e publica. Quando uma nova versão é publicada, a anterior passa para o histórico.
+
+### Contas, acesso e auditoria
+
+- Contas individuais para funcionários, com convites de activação e atribuição explícita de permissões editoriais, técnicas ou de correcção. Os estudantes entram com o número institucional, que é guardado como texto para preservar os zeros iniciais.
+- Importação de estudantes por CSV com pré-visualização e erros por linha. O painel permite gerir a validade do credenciamento, emitir ligações de activação de uso único, suspender e reactivar contas. As correcções de número exigem permissão específica e justificação.
+- Activação e alteração de palavra-passe, mensagens de validação nos formulários e recuperação pelo endereço previamente validado. A entrega de correio pode ser configurada por SMTP ou pela API do Resend. A alteração da palavra-passe e a suspensão invalidam sessões anteriores.
+- Registo de acções administrativas e verificação da validade da conta e das permissões nos pedidos de leitura e descarregamento, incluindo pedidos parciais de PDF. No modo **Só leitura**, a aplicação bloqueia o descarregamento pela rota própria. Os bytes já entregues ao navegador podem ser copiados ou capturados.
+
+### Documentos e infra-estrutura
+
+- Carregamento de PDF e DOCX em partes, com retoma de transferências e limpeza das transferências expiradas. Os ficheiros ficam em quarentena até à análise de formato e antivírus. O LibreOffice converte DOCX em PDF para revisão.
+- A aplicação usa Python 3.12 e Django, com SQLite em desenvolvimento local e PostgreSQL na instalação alojada. Os metadados ficam na base de dados e o acervo fica em armazenamento privado. O leitor usa PDF.js.
+- A instalação via `compose.yaml` inclui PostgreSQL, Gunicorn, Caddy, um despachante e um processador sem rede. O ramo principal inclui também `compose.processor.yaml` para [instalar o processador num servidor separado](https://github.com/MergiorGoriate/Biblioteca-Rovuma/blob/main/docs/operacoes.md#processador-num-servidor-separado) e ligar o despachante a um gateway HTTPS autenticado. Nesse modo, o conversor trabalha sem rede e o actualizador de assinaturas ClamAV corre num contentor próprio.
+- O procedimento de cópia e restauro inclui cópias encriptadas com Restic e recuperação conjunta da base de dados e dos ficheiros privados. O restauro local foi ensaiado com PostgreSQL e com verificação da integridade e leitura autorizada de um PDF.
+
+## Obras de demonstração
+
+O ambiente de teste tem quatro livros fictícios com capas próprias. Três têm PDF e dois têm exemplares fictícios no inventário.
+
+| Obra | Acesso de teste |
+| --- | --- |
+| Métodos de investigação científica | Só leitura |
+| Fundamentos de biologia | Leitura, descarregamento e consulta local |
+| Ecologia e conservação | Só leitura |
+| Escrita académica | Consulta local |
 
 ## Executar localmente
 
-Requer Python 3.12. Abra um terminal na pasta extraída.
+Clone o repositório e instale as dependências com Python 3.12. Para reproduzir a interface do ambiente de teste, execute `git switch reconstrucao-modulos` depois de entrar na pasta do projecto.
 
 ```sh
+git clone https://github.com/MergiorGoriate/Biblioteca-Rovuma.git
+cd Biblioteca-Rovuma
 python -m venv .venv
 . .venv/bin/activate
 python -m pip install -r requirements.txt
@@ -14,28 +61,45 @@ python manage.py migrate
 python manage.py runserver 127.0.0.1:8000
 ```
 
-Abra [Biblioteca Rovuma](http://127.0.0.1:8000). Em Windows use `.venv\Scripts\activate` ou execute `.venv\Scripts\python.exe` directamente.
+Em Windows, active o ambiente com `.venv\Scripts\activate` ou execute `.venv\Scripts\python.exe` directamente. Abra o [portal local](http://127.0.0.1:8000/portal/) ou a [entrada administrativa local](http://127.0.0.1:8000/admin/entrar/).
 
-As migrações criam a estrutura da base de dados. Para explorar dados fictícios numa instalação local, defina `DEMO_STUDENT_PASSWORD` e `DEMO_STAFF_PASSWORD` no ambiente, com palavras-passe escolhidas por si, e execute `python manage.py demo_rovuma`. Entre como `000042` ou `bibliotecario.demo`, respectivamente. O comando só funciona em desenvolvimento com SQLite. O manual descreve a criação e atribuição das contas de serviço individuais para outras instalações.
+Para experimentar com SQLite, defina `DEMO_STUDENT_PASSWORD` e `DEMO_STAFF_PASSWORD` no ambiente com palavras-passe escolhidas por si e execute `python manage.py demo_rovuma`. O comando cria as contas locais `000042` e `bibliotecario.demo` e uma obra fictícia adicional. No ramo de teste, execute também `python manage.py seed_sample_books --confirm-test-environment` para carregar os quatro livros da tabela.
 
-Para uma instalação de uso real, aplique o [procedimento de instalação e primeiro convite](docs/operacoes.md#produção). A base de dados inicia sem documentos e contas de demonstração.
+Para ensaiar o processamento local, instale ClamAV com as respectivas assinaturas e LibreOffice Writer. Com o servidor de desenvolvimento activo, execute `python manage.py dispatch_documents` e `python -m documents.worker --spool var/spool` em terminais separados. Para ensaios locais com ficheiros fictícios, o processador aceita a opção `--development-no-antivirus`. Para uma instalação de uso real, siga o [procedimento de instalação e primeiro convite](docs/operacoes.md#produção). As migrações criam a estrutura de uma base vazia e a primeira conta de serviço é criada por convite.
 
-O portal do leitor fica em `/portal/`. O painel do bibliotecário fica em `/admin/` e tem entrada própria em `/admin/entrar/`. É necessário entrar com uma conta autorizada para ver os módulos atribuídos.
+## Testes
 
-Para analisar novos documentos num ambiente local com ficheiros de teste, execute em dois terminais adicionais `python manage.py dispatch_documents` e `python -m documents.worker --spool var/spool`. Instale ClamAV com assinaturas e LibreOffice Writer. Para um ensaio com documentos próprios e inofensivos, a opção explícita `--development-no-antivirus` permite executar o teste estrutural sem ClamAV. A configuração de produção usa o processador em contentor, sem essa opção.
+```sh
+python manage.py check
+python manage.py makemigrations --check --dry-run
+python manage.py test
+```
 
-Para executar os testes use `python manage.py test`. Uma instalação com PostgreSQL pode executar a mesma suite definindo as variáveis `POSTGRES_*` e dando ao utilizador de teste permissão para criar a base de dados temporária. O ambiente local usa o backend de correio em memória. Os testes verificam a mensagem e a ligação, enquanto a entrega real requer SMTP.
+A suite verifica permissões, activação, recuperação da palavra-passe, importação, pesquisa, leitura de PDFs, transferência de documentos, publicação e auditoria. Para repetir a validação visual do ramo de teste, prepare as duas contas e as obras de demonstração, mantenha o servidor local activo e execute:
+
+```sh
+python -m pip install playwright
+python -m playwright install chromium
+python ops/browser_smoke.py
+```
+
+O ensaio em Chromium verifica a interface em dimensões de computador e telemóvel, incluindo as barras fixas, os filtros, a mudança de tema e o leitor. O processamento de documentos tem validação própria no GitHub Actions. O correio local é simulado em memória. A entrega a destinatários reais depende da configuração do remetente e do serviço de correio.
+
+- [Validação da interface em computador e telemóvel](https://github.com/MergiorGoriate/Biblioteca-Rovuma/actions/runs/43934769411)
+- [Resultados dos ensaios locais com SQLite, PostgreSQL e restauro](docs/resultados/)
+
+## Estado da instalação
+
+O ramo [`main`](https://github.com/MergiorGoriate/Biblioteca-Rovuma/tree/main) é o ramo principal e contém a configuração do processador externo. O ramo [`reconstrucao-modulos`](https://github.com/MergiorGoriate/Biblioteca-Rovuma/tree/reconstrucao-modulos) fornece a interface actualizada e o catálogo de demonstração em execução no ambiente `teste` do Railway, com a barra do painel fixada na [revisão `72ddfbd`](https://github.com/MergiorGoriate/Biblioteca-Rovuma/commit/72ddfbd1ee396eef20f4b14ab49fb6d04c7efb61).
+
+Em 16 de Novembro de 2026, a aplicação Web e o PostgreSQL estavam activos no ambiente de teste e o serviço de processamento estava offline. O processamento de novos documentos nesse alojamento depende da ligação e validação de um processador com as assinaturas oficiais do ClamAV. As obras fictícias já preparadas podem ser consultadas para testar o portal.
+
+A autenticação institucional está prevista no modelo de contas. A ligação ao portal académico depende da confirmação do fornecedor de identidade, do protocolo e das regras de credenciamento pela Universidade. Presentemente, o acesso usa as credenciais próprias da biblioteca. A cópia externa agendada e o restauro no servidor dependem da configuração e validação do destino de cópias.
 
 ## Documentação
 
 - [Instalação, actualização e recuperação](docs/operacoes.md)
-- [Manual breve do bibliotecário](docs/bibliotecario.md)
-- [Arquitectura de referência e estado da instalação](docs/arquitectura.md)
+- [Manual do bibliotecário](docs/bibliotecario.md)
+- [Arquitectura de referência](docs/arquitectura.md) e [diagrama técnico](docs/arquitectura.svg)
 - [Modelo de dados](docs/modelo-de-dados.md)
-- [Validação efectuada e pendências](docs/validacao.md)
-
-## Limites de leitura e integração
-
-Em Só leitura, o servidor recusa a rota de descarregamento e o leitor omite a opção. A consulta no navegador entrega bytes ao dispositivo e permite que o conteúdo seja copiado ou capturado. A suspensão e a validade são verificadas nos novos pedidos, incluindo os pedidos parciais. Os bytes anteriormente recebidos pelo dispositivo podem permanecer acessíveis ao utilizador.
-
-A integração académica tem campos próprios para origem e identificador do fornecedor. Quando o protocolo for confirmado, o adaptador deverá verificar emissor, audiência, assinatura, estado e nonce, confirmar o mapeamento para uma conta importada e respeitar o credenciamento local. As contas marcadas como institucionais não usam sessões por senha local nem recuperação por SMTP. O sistema não recolhe senhas do portal académico.
+- [Validação e dependências](docs/validacao.md)

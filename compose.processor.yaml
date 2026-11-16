@@ -1,0 +1,69 @@
+name: rovuma-processador
+
+x-runtime: &runtime
+  build:
+    context: .
+    dockerfile: Dockerfile.processor
+  image: rovuma-processador:${APP_TAG:-local}
+  init: true
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+
+services:
+  gateway:
+    <<: *runtime
+    command: ["python", "-m", "documents.remote_processor"]
+    environment:
+      ROVUMA_PROCESSOR_TOKEN: ${ROVUMA_PROCESSOR_TOKEN:?Defina a chave privada do processador}
+      ROVUMA_PROCESSOR_SPOOL: /data/spool
+    expose: ["8080"]
+    pids_limit: 40
+    mem_limit: 192m
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    volumes:
+      - spool:/data/spool
+      - signatures:/var/lib/clamav:ro
+    depends_on:
+      - converter
+      - signatures
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://[::1]:8080/health', timeout=3).close()"]
+      interval: 15s
+      timeout: 5s
+      retries: 4
+
+  converter:
+    <<: *runtime
+    command: ["python", "-m", "documents.worker", "--spool", "/data/spool"]
+    network_mode: none
+    pids_limit: 90
+    cpus: 1.5
+    mem_limit: ${ROVUMA_CONVERTER_MEMORY:-4g}
+    tmpfs:
+      - /tmp:size=128m,mode=1777
+    volumes:
+      - spool:/data/spool
+      - signatures:/var/lib/clamav:ro
+    healthcheck:
+      test: ["CMD", "python", "-c", "from documents.remote_processor import signatures_ready; raise SystemExit(not signatures_ready())"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  signatures:
+    <<: *runtime
+    command: ["freshclam", "--config-file=/etc/freshclam.processor.conf", "--daemon", "--foreground"]
+    mem_limit: ${ROVUMA_SIGNATURES_MEMORY:-3g}
+    cpus: 1.0
+    pids_limit: 30
+    tmpfs:
+      - /tmp:size=64m,mode=1777
+    volumes:
+      - signatures:/var/lib/clamav
+
+volumes:
+  spool:
+  signatures:
