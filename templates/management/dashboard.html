@@ -1,60 +1,83 @@
 {% extends "management/base.html" %}
 {% block title %}Painel administrativo · Biblioteca Rovuma{% endblock %}
 {% block content %}
-<header class="dashboard-heading">
+<header class="admin-page-heading">
   <h1>Painel administrativo</h1>
-  <div class="actions">
-    {% if nav_credential %}<a class="secondary" href="{% url 'imports' %}">Importar estudantes</a>{% endif %}
-  </div>
+  {% if nav_credential %}<a class="secondary admin-action" href="{% url 'imports' %}">{% include "management/icon.html" with icon="upload" %}Importar estudantes</a>{% endif %}
 </header>
 
-<div class="dashboard-layout">
+{% if nav_editor or nav_credential or nav_correct %}
+<div class="dashboard-overview">
   {% if nav_editor %}
-  <section class="panel dashboard-panel">
-    <div class="section-head"><h2>Acervo</h2><a href="{% url 'collection' %}">Gerir acervo</a></div>
-    <div class="dashboard-stats">
-      <a href="{% url 'collection' %}?estado=published"><strong>{{ works.published }}</strong><span>Obras publicadas</span></a>
-      <a href="{% url 'collection' %}?estado=draft"><strong>{{ works.draft }}</strong><span>Rascunhos</span></a>
-      <a href="{% url 'inventory' %}?estado=local"><strong>{{ local_copies }}</strong><span>Exemplares para consulta local</span></a>
-    </div>
-    <h3>Obras actualizadas recentemente</h3>
-    <ul class="dashboard-list">
-      {% for work in recent_works %}
-      <li><a href="{% url 'manage_work' work.pk %}">{{ work.title }}</a><span class="tag">{{ work.get_state_display }}</span></li>
-      {% empty %}<li class="muted">O acervo ainda não tem obras registadas.</li>{% endfor %}
+  <section class="admin-card dashboard-module" data-module="collection">
+    <header class="admin-card-heading">
+      <span class="admin-section-icon">{% include "management/icon.html" with icon="books" %}</span>
+      <h2>Acervo</h2>
+    </header>
+    <ul class="dashboard-metrics">
+      <li><a href="{% url 'collection' %}?estado=published"><span>Obras publicadas</span><strong>{{ works.published }}</strong></a></li>
+      <li><a href="{% url 'collection' %}?estado=draft"><span>Rascunhos</span><strong>{{ works.draft }}</strong></a></li>
+      <li><a href="{% url 'inventory' %}?estado=local"><span>Exemplares para consulta local</span><strong>{{ local_copies }}</strong></a></li>
     </ul>
-    <a class="dashboard-footer" href="{% url 'locations' %}">Gerir localizações, autores e assuntos</a>
+    <a class="admin-text-link dashboard-module-link" href="{% url 'collection' %}">Gerir acervo{% include "management/icon.html" with icon="arrow" %}</a>
   </section>
 
-  <section class="panel dashboard-panel">
-    <div class="section-head"><h2>Documentos</h2><a href="{% url 'document_queue' %}">Abrir fila</a></div>
-    <div class="dashboard-stats">
-      <a href="{% url 'document_queue' %}?estado=revisao"><strong>{{ documents.revisao }}</strong><span>Pendentes de revisão</span></a>
-      <a href="{% url 'document_queue' %}?estado=processamento"><strong>{{ documents.processamento }}</strong><span>Em processamento</span></a>
-      <a href="{% url 'document_queue' %}?estado=falhas"><strong>{{ documents.falhas }}</strong><span>Falhas de processamento</span></a>
-    </div>
+  <section class="admin-card dashboard-module" data-module="documents">
+    <header class="admin-card-heading">
+      <span class="admin-section-icon">{% include "management/icon.html" with icon="file" %}</span>
+      <h2>Documentos</h2>
+    </header>
+    <ul class="dashboard-metrics">
+      <li><a href="{% url 'document_queue' %}?estado=revisao"><span>Pendentes de revisão</span><strong>{{ documents.revisao }}</strong></a></li>
+      <li><a href="{% url 'document_queue' %}?estado=processamento"><span>Em processamento</span><strong>{{ documents.processamento }}</strong></a></li>
+      <li><a{% if documents.falhas %} class="dashboard-metric-alert"{% endif %} href="{% url 'document_queue' %}?estado=falhas"><span>Falhas de processamento</span><strong>{{ documents.falhas }}</strong></a></li>
+    </ul>
+    <a class="admin-text-link dashboard-module-link" href="{% url 'document_queue' %}">Abrir fila{% include "management/icon.html" with icon="arrow" %}</a>
   </section>
   {% endif %}
 
   {% if nav_credential or nav_correct %}
-  <section class="panel dashboard-panel">
-    <div class="section-head"><h2>Estudantes</h2>
-    <a href="{% url 'students' %}">{% if nav_credential %}Gerir estudantes{% else %}Corrigir números{% endif %}</a></div>
+  <section class="admin-card dashboard-module" data-module="students">
+    <header class="admin-card-heading">
+      <span class="admin-section-icon">{% include "management/icon.html" with icon="people" %}</span>
+      <h2>Estudantes</h2>
+    </header>
     {% if nav_credential %}
-    <div class="dashboard-stats">
-      <a href="{% url 'students' %}?estado=active"><strong>{{ students.active }}</strong><span>Credenciamento válido</span></a>
-      <a href="{% url 'students' %}?estado=pending"><strong>{{ students.pending }}</strong><span>Pendentes de activação</span></a>
-      <a href="{% url 'students' %}?estado=expired"><strong>{{ students.expired }}</strong><span>Sem credenciamento válido</span></a>
-      <a href="{% url 'students' %}?estado=suspended"><strong>{{ students.suspended }}</strong><span>Contas suspensas</span></a>
-    </div>
+    <ul class="dashboard-metrics">
+      <li><a href="{% url 'students' %}?estado=active"><span>Credenciamento válido</span><strong>{{ students.active }}</strong></a></li>
+      <li><a href="{% url 'students' %}?estado=pending"><span>Pendentes de activação</span><strong>{{ students.pending }}</strong></a></li>
+      <li><a href="{% url 'students' %}?estado=expired"><span>Sem credenciamento válido</span><strong>{{ students.expired }}</strong></a></li>
+      <li><a href="{% url 'students' %}?estado=suspended"><span>Contas suspensas</span><strong>{{ students.suspended }}</strong></a></li>
+    </ul>
     {% endif %}
+    <a class="admin-text-link dashboard-module-link" href="{% url 'students' %}">{% if nav_credential %}Gerir estudantes{% else %}Corrigir números{% endif %}{% include "management/icon.html" with icon="arrow" %}</a>
   </section>
   {% endif %}
+</div>
+{% endif %}
 
+{% if nav_editor or nav_audit %}
+<div class="dashboard-activity">
+  {% if nav_editor %}
+  <section class="admin-card dashboard-activity-card">
+    <header class="admin-card-heading">
+      <h2>Obras actualizadas recentemente</h2>
+      <a class="admin-text-link" href="{% url 'locations' %}">Gerir localizações, autores e assuntos{% include "management/icon.html" with icon="arrow" %}</a>
+    </header>
+    <ul class="admin-divided-list">
+      {% for work in recent_works %}
+      <li><a class="admin-text-link" href="{% url 'manage_work' work.pk %}">{{ work.title }}</a><span class="admin-work-state" data-state="{{ work.state }}">{{ work.get_state_display }}</span></li>
+      {% empty %}<li class="muted">O acervo ainda não tem obras registadas.</li>{% endfor %}
+    </ul>
+  </section>
+  {% endif %}
   {% if nav_audit %}
-  <section class="panel dashboard-panel">
-    <div class="section-head"><h2>Auditoria recente</h2><a href="{% url 'audit' %}">Consultar auditoria</a></div>
-    <ul class="dashboard-list">
+  <section class="admin-card dashboard-activity-card">
+    <header class="admin-card-heading">
+      <h2>Auditoria recente</h2>
+      <a class="admin-text-link" href="{% url 'audit' %}">Consultar auditoria{% include "management/icon.html" with icon="arrow" %}</a>
+    </header>
+    <ul class="admin-divided-list">
       {% for event in recent_events %}
       <li><span>{{ event.action }}</span><time class="small muted" datetime="{{ event.created|date:'c' }}">{{ event.created|date:"d/m/Y H:i" }}</time></li>
       {% empty %}<li class="muted">Sem acções nas áreas atribuídas.</li>{% endfor %}
@@ -62,4 +85,5 @@
   </section>
   {% endif %}
 </div>
+{% endif %}
 {% endblock %}
