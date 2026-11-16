@@ -1,0 +1,1 @@
+{% extends "base.html" %}{% block content %}<section class="panel"><h1>Confirmar importação</h1><p>Origem: {{ batch.source }}</p>{% for row in rows %}<p>{{ row.numero }} — {{ row.validade }} — {{ row.email_validado }}</p>{% endfor %}{% if not batch.confirmed %}<form method="post">{% csrf_token %}<button>Confirmar importação</button></form>{% endif %}</section>{% endblock %}
