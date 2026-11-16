@@ -135,7 +135,10 @@ with sync_playwright() as playwright:
         expect(overview.get_by_role("link", name="Obras publicadas 5")).to_have_attribute("href", "/admin/obras/?estado=published")
         expect(overview.get_by_role("link", name="Pendentes de revisão 0")).to_have_attribute("href", "/admin/documentos/?estado=revisao")
         expect(overview.get_by_role("link", name="Credenciamento válido 1")).to_have_attribute("href", "/admin/estudantes/?estado=active")
-        assert overview.evaluate("grid => getComputedStyle(grid).gridTemplateColumns.split(' ').length") == (1 if mobile else 3)
+        columns = overview.locator(":scope > section").evaluate_all(
+            "cards => new Set(cards.map(card => Math.round(card.getBoundingClientRect().left))).size"
+        )
+        assert columns == (1 if mobile else 3)
         expect(page.get_by_role("heading", name="Obras actualizadas recentemente")).to_be_visible()
         expect(page.get_by_role("heading", name="Auditoria recente")).to_be_visible()
         assert page.locator("footer.site-footer").count() == 0
@@ -222,8 +225,10 @@ with sync_playwright() as playwright:
         expect(editions.get_by_role("link", name="Nova edição")).to_be_visible()
         expect(editions.get_by_role("link", name="Carregar documento")).to_be_visible()
         expect(editions.get_by_role("link", name="Editar exemplar FICTICIO-42")).to_be_visible()
-        details = editions.locator(".admin-edition-details")
-        assert details.evaluate("grid => getComputedStyle(grid).gridTemplateColumns.split(' ').length") == (1 if mobile else 2)
+        detail_columns = editions.locator(".admin-edition-details > section").evaluate_all(
+            "sections => new Set(sections.map(section => Math.round(section.getBoundingClientRect().left))).size"
+        )
+        assert detail_columns == (1 if mobile else 2)
         history = page.get_by_role("region", name="Histórico de documentos")
         expect(history.get_by_role("link", name="Pré-visualizar")).to_be_visible()
         page.get_by_role("button", name="Activar modo claro").click()
