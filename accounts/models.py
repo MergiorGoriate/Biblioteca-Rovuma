@@ -46,3 +46,13 @@ class Attempt(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=("scope", "address"), name="unique_attempt_scope")]
+
+
+# Regista a versão da conta em todas as entradas, incluindo force_login nos testes.
+from django.contrib.auth.signals import user_logged_in
+from django.dispatch import receiver
+
+
+@receiver(user_logged_in, dispatch_uid="accounts_record_session_version")
+def record_session_version(sender, request, user, **kwargs):
+    request.session["account_version"] = user.session_version
