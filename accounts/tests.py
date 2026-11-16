@@ -35,7 +35,7 @@ class StaffInvitationTests(TestCase):
         self.assertContains(self.client.post(link, {"new_password1": "curta", "new_password2": "curta"}),
                             "8 car", html=False)
         password = "Frase de ensaio comprida e individual 154!"
-        self.assertRedirects(self.client.post(link, {"new_password1": password, "new_password2": password}), reverse("login"))
+        self.assertRedirects(self.client.post(link, {"new_password1": password, "new_password2": password}), reverse("management_login"))
         self.assertEqual(self.client.get(link).status_code, 404)
         self.assertRedirects(self.client.post(reverse("login"), {"username": account.username, "password": password}),
                              reverse("home"), fetch_redirect_response=False)
@@ -71,9 +71,10 @@ class StaffInvitationTests(TestCase):
         self.assertTrue(response.cookies["csrftoken"]["secure"])
         password = "Frase de activação apenas de ensaio 154!"
         values = {"new_password1": password, "new_password2": password}
-        self.assertEqual(client.post(link, values, secure=True, HTTP_REFERER="https://testserver/").status_code, 403)
+        failure = client.post(link, values, secure=True, HTTP_REFERER="https://testserver/")
+        self.assertContains(failure, "Reabrir o formulário", status_code=403)
         values["csrfmiddlewaretoken"] = response.cookies["csrftoken"].value
         self.assertEqual(client.post(link, values, secure=True, HTTP_ORIGIN="https://outro.example.invalid").status_code, 403)
         self.assertRedirects(client.post(link, values, secure=True, HTTP_REFERER="https://testserver/"),
-                             reverse("login"), fetch_redirect_response=False)
+                             reverse("management_login"), fetch_redirect_response=False)
         self.assertEqual(client.get(link, secure=True).status_code, 404)

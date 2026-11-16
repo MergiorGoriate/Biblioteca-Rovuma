@@ -17,7 +17,8 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_POST, require_http_methods
+from django.views.csrf import csrf_failure as default_csrf_failure
 
 from audit.models import record
 from .access import can_manage, has, permission, require, student
@@ -137,6 +138,14 @@ def profile(request):
 
 
 @never_cache
+def csrf_failure(request, reason=""):
+    if request.resolver_match and request.resolver_match.url_name == "activate":
+        return render(request, "registration/activation_retry.html", status=403)
+    return default_csrf_failure(request, reason=reason)
+
+
+@never_cache
+@require_http_methods(["GET", "POST"])
 def activate(request, token):
     digest = hashlib.sha256(token.encode()).hexdigest()
     eligible = User.objects.filter(activation_token_hash=digest, activation_expires__gt=timezone.now(),
@@ -152,8 +161,10 @@ def activate(request, token):
             user.activation_expires = None
             user.session_version += 1
             user.save()
-            return redirect("login")
-    return render(request, "form.html", {"heading": "Activar conta", "form": form})
+            destination = "management_login" if can_manage(user) else "login"
+            messages.success(request, "Palavra-passe guardada. Já pode iniciar sessão.")
+            return redirect(destination)
+    return render(request, "registration/activate.html", {"account": user, "form": form})
 
 
 @require(lambda user: has(user, "accounts.manage_credential") or has(user, "accounts.correct_number"),

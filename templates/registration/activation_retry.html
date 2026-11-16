@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Retomar a activação · Biblioteca Rovuma{% endblock %}
+{% block content %}
+<section class="panel form-panel">
+  <h1>Retomar a activação</h1>
+  <p>O formulário não foi aceite pela verificação de segurança. Reabra a página e volte a introduzir a palavra-passe nos dois campos.</p>
+  <a class="primary" href="{% url 'activate' request.resolver_match.kwargs.token %}">Reabrir o formulário</a>
+</section>
+{% endblock %}
