@@ -206,6 +206,22 @@ def work_state(request, pk):
 
 
 @permission(EDITOR)
+def inventory(request):
+    q = request.GET.get("q", "").strip()[:150]
+    state = request.GET.get("estado", "")
+    copies = Copy.objects.select_related("edition__work", "location")
+    if q:
+        copies = copies.filter(Q(inventory__icontains=q) | Q(edition__work__title__icontains=q)
+                               | Q(location__name__icontains=q) | Q(location__unit__icontains=q)
+                               | Q(location__room__icontains=q) | Q(location__shelf__icontains=q)
+                               | Q(location__level__icontains=q))
+    if state in Copy.State.values:
+        copies = copies.filter(state=state)
+    page = Paginator(copies.order_by("edition__work__title", "inventory"), 30).get_page(request.GET.get("page"))
+    return render(request, "management/inventory.html", {"page": page, "q": q, "state": state, "states": Copy.State.choices})
+
+
+@permission(EDITOR)
 def locations(request):
     return render(request, "locations.html", {"locations": Location.objects.all(),
                   "authors": Author.objects.order_by("name"), "subjects": Subject.objects.order_by("name")})

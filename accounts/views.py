@@ -60,6 +60,13 @@ class ManagementLogin(LocalLogin):
     template_name = "management/login.html"
     authentication_form = ManagementAuthenticationForm
     next_page = reverse_lazy("management")
+    def get(self, request, *args, **kwargs):
+        if can_manage(request.user):
+            destination = self.get_success_url()
+            if destination.split("?", 1)[0].rstrip("/") == request.path.rstrip("/"):
+                destination = self.get_default_redirect_url()
+            return redirect(destination)
+        return super().get(request, *args, **kwargs)
 
 
 @require_POST

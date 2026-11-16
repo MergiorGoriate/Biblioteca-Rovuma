@@ -120,24 +120,33 @@ nav a[aria-current=page] { text-decoration: underline; text-underline-offset: .3
 .management-shell {
   flex: 1;
   display: grid;
-  grid-template-columns: minmax(175px, 195px) minmax(0, 1fr);
+  grid-template-columns: minmax(195px, 224px) minmax(0, 1fr);
   gap: clamp(20px, 4vw, 44px);
   align-items: start;
 }
+.management-sidebar { position: sticky; top: 18px; margin-top: 42px; }
 .management-navigation {
   display: grid;
   gap: 5px;
-  margin-top: 42px;
-  padding: 9px;
+  padding: 10px;
   border: 1px solid var(--line);
   border-radius: var(--round);
   background: var(--white);
+}
+.management-navigation[hidden] { display: none; }
+.management-menu-group { border-top: 1px solid var(--line); padding-top: 9px; }
+.management-menu-group p {
+  color: var(--muted);
+  font-size: .74rem;
+  font-weight: 700;
+  margin: 0 11px 3px;
 }
 .management-navigation a {
   display: block;
   padding: 9px 11px;
   border-radius: 7px;
   color: var(--ink);
+  font-size: .91rem;
   font-weight: 650;
   text-decoration: none;
 }
@@ -159,11 +168,12 @@ nav a[aria-current=page] { text-decoration: underline; text-underline-offset: .3
 
 @media (max-width: 760px) {
   .management-shell { grid-template-columns: minmax(0, 1fr); gap: 0; }
-  .management-navigation {
-    display: flex;
-    flex-wrap: wrap;
-    margin-top: 16px;
-  }
+  .management-sidebar { position: static; margin-top: 16px; }
+  .management-navigation { margin-top: 8px; }
+  #management-menu-toggle { width: 100%; }
   .management-navigation a { font-size: .87rem; }
   .management-content { padding-top: 24px; }
 }
+
+#management-menu-toggle[hidden] { display: none; }
+.inventory-record p { margin-bottom: 6px; }

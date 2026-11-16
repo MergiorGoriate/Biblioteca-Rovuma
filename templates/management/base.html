@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base.html" %}{% load static %}
 {% block body_class %}management{% endblock %}
 {% block header %}
 <a class="brand" href="{% url 'management' %}">{% include 'brand_icon.html' %}<span>Biblioteca Rovuma<small>Painel administrativo</small></span></a>
@@ -9,20 +9,38 @@
 {% endblock %}
 {% block layout_start %}
 <div class="wrap management-shell">
-  {% with route=request.resolver_match.url_name %}
-  <nav class="management-navigation" aria-label="Navegação administrativa">
-    <a href="{% url 'management' %}"{% if route == 'management' %} aria-current="page"{% endif %}>Visão geral</a>
-    {% if nav_editor %}
-    <a href="{% url 'collection' %}"{% if route == 'collection' or route == 'manage_work' or route == 'edit_work' or route == 'new_work' or route == 'new_related' or route == 'edit_related' %} aria-current="page"{% endif %}>Acervo</a>
-    <a href="{% url 'document_queue' %}"{% if route == 'document_queue' or route == 'reader_preview' or route == 'upload' %} aria-current="page"{% endif %}>Documentos</a>
-    <a href="{% url 'locations' %}"{% if route == 'locations' or route == 'new_location' or route == 'edit_location' %} aria-current="page"{% endif %}>Localizações e registos</a>
-    {% endif %}
-    {% if nav_credential or nav_correct %}
-    <a href="{% url 'students' %}"{% if route == 'students' or route == 'credential' or route == 'correct' or route == 'imports' or route == 'import_preview' %} aria-current="page"{% endif %}>Estudantes</a>
-    {% endif %}
-    {% if nav_audit %}<a href="{% url 'audit' %}"{% if route == 'audit' %} aria-current="page"{% endif %}>Auditoria</a>{% endif %}
-  </nav>
-  {% endwith %}
+  <aside class="management-sidebar">
+    <button type="button" id="management-menu-toggle" class="secondary" aria-controls="management-navigation" aria-expanded="true" hidden>Menu administrativo</button>
+    {% with route=request.resolver_match.url_name kind=request.resolver_match.kwargs.kind %}
+    <nav id="management-navigation" class="management-navigation" aria-label="Navegação administrativa">
+      <a href="{% url 'management' %}"{% if route == 'management' %} aria-current="page"{% endif %}>Visão geral</a>
+      {% if nav_editor %}
+      <div class="management-menu-group">
+        <p>Acervo e documentos</p>
+        <a href="{% url 'collection' %}"{% if route == 'collection' or route == 'manage_work' or route == 'edit_work' or route == 'new_work' or kind == 'edicao' or kind == 'identificador' %} aria-current="page"{% endif %}>Obras e edições</a>
+        <a href="{% url 'document_queue' %}"{% if route == 'document_queue' or route == 'reader_preview' or route == 'upload' %} aria-current="page"{% endif %}>Fila de documentos</a>
+        <a href="{% url 'inventory' %}"{% if route == 'inventory' or kind == 'exemplar' %} aria-current="page"{% endif %}>Exemplares físicos</a>
+        <a href="{% url 'locations' %}"{% if route == 'locations' or route == 'new_location' or route == 'edit_location' %} aria-current="page"{% endif %}>Localizações, autores e assuntos</a>
+      </div>
+      {% endif %}
+      {% if nav_credential or nav_correct %}
+      <div class="management-menu-group">
+        <p>Contas e credenciamento</p>
+        <a href="{% url 'students' %}"{% if route == 'students' or route == 'credential' or route == 'correct' %} aria-current="page"{% endif %}>Estudantes</a>
+        {% if nav_credential %}<a href="{% url 'imports' %}"{% if route == 'imports' or route == 'import_preview' %} aria-current="page"{% endif %}>Importar estudantes</a>{% endif %}
+      </div>
+      {% endif %}
+      {% if nav_audit or user.identity_source == "local" %}
+      <div class="management-menu-group">
+        <p>Registos e conta</p>
+        {% if nav_audit %}<a href="{% url 'audit' %}"{% if route == 'audit' %} aria-current="page"{% endif %}>Auditoria</a>{% endif %}
+        {% if user.identity_source == "local" %}<a href="{% url 'management_password' %}"{% if route == 'management_password' %} aria-current="page"{% endif %}>Alterar palavra-passe</a>{% endif %}
+      </div>
+      {% endif %}
+    </nav>
+    {% endwith %}
+  </aside>
 {% endblock %}
 {% block main_class %}main management-content{% endblock %}
 {% block layout_end %}</div>{% endblock %}
+{% block layout_scripts %}<script src="{% static 'management-menu.js' %}" defer></script>{% endblock %}

@@ -49,6 +49,7 @@ urlpatterns = [
     path("admin/obras/<int:pk>/", catalog.manage_work, name="manage_work"),
     path("admin/obras/<int:pk>/editar/", catalog.edit_work, name="edit_work"),
     path("admin/obras/<int:pk>/estado/", catalog.work_state, name="work_state"),
+    path("admin/exemplares/", catalog.inventory, name="inventory"),
     path("admin/localizacoes/", catalog.locations, name="locations"),
     path("admin/registo/<slug:kind>/", catalog.edit_related, name="new_location"),
     path("admin/registo/<slug:kind>/editar/<int:pk>/", catalog.edit_related, name="edit_location"),

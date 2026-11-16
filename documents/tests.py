@@ -463,3 +463,24 @@ class LibraryTest(TestCase):
         self.assertEqual(result.redirect_chain[0], (self.url("work_state", self.work.pk), 308))
         self.work.refresh_from_db()
         self.assertEqual(self.work.state, Work.State.ARCHIVED)
+
+    def test_physical_inventory_uses_existing_editor_permissions(self):
+        location = Location.objects.create(name="Depósito", room="Sala A")
+        copy = Copy.objects.create(edition=self.edition, location=location, inventory="DEPOSITO-18")
+        Copy.objects.create(edition=self.edition, location=location, inventory="DEPOSITO-19",
+                            state=Copy.State.MAINTENANCE)
+        route = self.url("inventory")
+
+        self.assertRedirects(self.client.get(route), self.url("management_login") + "?next=/admin/exemplares/")
+        self.enter()
+        self.assertEqual(self.client.get(route).status_code, 403)
+        result = self.editor.get(route, {"q": "Sala", "estado": Copy.State.LOCAL})
+        self.assertEqual(list(result.context["page"]), [copy])
+        result = self.editor.get(route, {"q": "Depósito", "estado": Copy.State.LOCAL})
+        self.assertEqual(list(result.context["page"]), [copy])
+        self.assertContains(result, "Sala A")
+        self.assertContains(result, reverse("edit_related", args=["exemplar", self.edition.pk, copy.pk]))
+        self.assertContains(result, "Importar estudantes")
+        self.assertRedirects(self.editor.get(self.url("management_login")), self.url("management"))
+        self.assertRedirects(self.editor.get(self.url("management_login"), {"next": self.url("management_login")}),
+                             self.url("management"))

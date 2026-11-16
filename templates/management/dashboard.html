@@ -6,7 +6,6 @@
   <div class="actions">
     {% if nav_editor %}<a class="primary" href="{% url 'new_work' %}">Nova obra</a>{% endif %}
     {% if nav_credential %}<a class="secondary" href="{% url 'imports' %}">Importar estudantes</a>{% endif %}
-    {% if user.identity_source == "local" %}<a class="plain" href="{% url 'management_password' %}">Alterar palavra-passe</a>{% endif %}
   </div>
 </header>
 
@@ -17,7 +16,7 @@
     <div class="dashboard-stats">
       <a href="{% url 'collection' %}?estado=published"><strong>{{ works.published }}</strong><span>Obras publicadas</span></a>
       <a href="{% url 'collection' %}?estado=draft"><strong>{{ works.draft }}</strong><span>Rascunhos</span></a>
-      <div><strong>{{ local_copies }}</strong><span>Exemplares para consulta local</span></div>
+      <a href="{% url 'inventory' %}?estado=local"><strong>{{ local_copies }}</strong><span>Exemplares para consulta local</span></a>
     </div>
     <h3>Obras actualizadas recentemente</h3>
     <ul class="dashboard-list">
