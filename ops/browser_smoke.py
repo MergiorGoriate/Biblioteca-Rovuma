@@ -80,6 +80,16 @@ with sync_playwright() as playwright:
         else:
             expect(menu).to_be_hidden()
         assert page.evaluate("document.documentElement.scrollWidth <= innerWidth")
+        if not mobile:
+            page.set_viewport_size({"width": 1280, "height": 550})
+            expect(navigation.get_by_role("link", name="Alterar palavra-passe")).to_be_in_viewport(ratio=1)
+            assert navigation.evaluate("menu => menu.scrollHeight === menu.clientHeight")
+            assert navigation.locator("a svg").evaluate_all(
+                "icons => icons.length === 9 && icons.every(icon => {"
+                "const box = icon.getBoundingClientRect(); return box.height > 0 && box.top >= 0 && box.bottom <= innerHeight;"
+                "})"
+            )
+            page.set_viewport_size({"width": width, "height": height})
         if mobile:
             menu.click()
         navigation.get_by_role("link", name="Obras e edições").click()
