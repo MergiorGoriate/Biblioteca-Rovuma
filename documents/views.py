@@ -174,6 +174,7 @@ def pdf(request, pk):
         raise Http404
     response = stream_range(path, request)
     response["Accept-Ranges"] = "bytes"
+    response["Cache-Control"] = "private, no-store"
     if response.status_code in (200, 206):
         response["Content-Disposition"] = content_disposition_header(False, "leitura.pdf")
         response["Content-Security-Policy"] = "default-src 'none'; sandbox"
