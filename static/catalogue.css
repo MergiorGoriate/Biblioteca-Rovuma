@@ -21,8 +21,51 @@
 }
 .reader-portal .site-header .brand { font-weight: 730; }
 .reader-portal #conteudo { scroll-margin-top: 100px; }
-.catalogue-filters { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.catalogue-filters .primary { white-space: normal; width: auto; justify-self: start; }
+.catalogue-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 16px 12px;
+}
+.catalogue-filter { position: relative; min-width: 0; }
+.catalogue-filter:not(.catalogue-year) { flex: 0 1 clamp(126px, 15vw, 183px); }
+.catalogue-filter .admin-icon {
+  position: absolute;
+  z-index: 1;
+  inset-inline-start: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+  pointer-events: none;
+}
+.catalogue-filter .admin-icon:last-child { inset-inline: auto 11px; }
+.reader-portal .catalogue-filter :is(select, input) {
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  min-height: 40px;
+  padding-inline: 35px 12px;
+  background: var(--pale);
+  font-size: .88rem;
+}
+.reader-portal .catalogue-filter select {
+  appearance: none;
+  padding-inline-end: 34px;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+.reader-portal .catalogue-filter [data-active="true"] {
+  border-color: var(--blue);
+  background: var(--soft-blue);
+}
+.catalogue-year { width: 105px; }
+.catalogue-filters :is(.primary, .plain) { min-height: 40px; font-size: .84rem; border-radius: 100px; }
+.catalogue-filters .plain { padding-inline: 9px; }
+.reader-portal.catalogue-page #conteudo { scroll-margin-top: 145px; }
+.catalogue-results-heading h1 { font-size: clamp(1.4rem, 3vw, 1.85rem); }
+.catalogue-acervo-note { margin-block: 14px 0; }
 .portal-hero {
   display: grid;
   grid-template-columns: minmax(0, 1.13fr) minmax(0, 1fr);
@@ -82,7 +125,15 @@
   }
   .reader-portal .management-navigation a .admin-icon { width: 19px; height: 19px; }
   .reader-portal .management-navigation a[aria-current=page] { box-shadow: inset 0 -2px var(--admin-accent); }
-  .catalogue-filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .catalogue-filters {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    padding: 0 12px 10px;
+  }
+  .catalogue-year { width: auto; }
+  .catalogue-filters .plain { justify-self: start; }
+  .reader-portal.catalogue-page #conteudo { scroll-margin-top: 260px; }
 }
 @media (max-width: 610px) {
   .portal-hero { grid-template-columns: minmax(0, 1fr); }

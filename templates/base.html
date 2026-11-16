@@ -20,7 +20,9 @@
 </nav>
 {% endif %}
 {% endblock %}
-</div></header>
+</div>
+{% block header_bottom %}{% endblock %}
+</header>
 {% block layout_start %}{% endblock %}
 <main id="conteudo" class="{% block main_class %}wrap main{% endblock %}">
 {% for message in messages %}<div class="notice {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
