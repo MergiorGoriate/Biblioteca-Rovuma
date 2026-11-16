@@ -51,12 +51,12 @@ jobs:
           docker compose run --rm --no-deps --entrypoint sh processor -ec '
             printf "%s\n" "Rovuma_sonda_deteccao_v1" > /tmp/sonda.txt
             status=0
-            clamscan --no-summary /tmp/sonda.txt || status=$?
+            /opt/clamav-ci/clamscan --no-summary /tmp/sonda.txt || status=$?
             test "$status" -eq 1
           '
           version=$(docker compose run -T --rm --no-deps dispatcher python -m ops.verify_document_pipeline)
           docker compose run --rm --no-deps dispatcher python manage.py dispatch_documents --once
-          docker compose run --rm --no-deps processor python -m documents.worker --spool /data/spool --once
+          docker compose run --rm --no-deps processor env PATH=/opt/clamav-ci:/usr/local/bin:/usr/bin:/bin python -m documents.worker --spool /data/spool --once
           docker compose run --rm --no-deps dispatcher python manage.py dispatch_documents --once
           docker compose run --rm --no-deps dispatcher python -m ops.verify_document_pipeline "$version"
       - name: Remover ambiente descartável
